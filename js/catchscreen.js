@@ -11,7 +11,7 @@ const THROW_TIME = 0.45;
 const BAND_PERIOD = 2.3; // Band-Bewegung beim Boss – bewusst anderes Tempo als der Marker (1.4)
 
 export function makeCatchScreen({ ctx, audio, onResult }) {
-  let id = 1, isBoss = false;
+  let id = 1, isBoss = false, name = "";
   let phase = "aim";       // aim | throw | success | fail
   let t = 0, resultT = 0, throwT = 0;
   let markerT = 0, bandT = 0, pos = 0;
@@ -22,7 +22,9 @@ export function makeCatchScreen({ ctx, audio, onResult }) {
   function start(newId) {
     id = newId;
     isBoss = id === BOSS_ID;
-    const rarity = (POKEMON.find(p => p.id === id) || {}).rarity || "rare";
+    const entry = POKEMON.find(p => p.id === id) || {};
+    name = isBoss ? "Lukas" : (entry.name || "");
+    const rarity = entry.rarity || "rare";
     bandSz = isBoss ? BOSS_BAND : bandSize(rarity);
     bandCenter = randomCenter(bandSz);          // Zufallsposition
     band = makeBand(bandCenter, bandSz);
@@ -101,6 +103,16 @@ export function makeCatchScreen({ ctx, audio, onResult }) {
       ctx.drawImage(bg, (VIRTUAL_W - dw) / 2, (VIRTUAL_H - dh) / 2, dw, dh);
     }
     const hidden = phase === "success";
+    // Name oben (während der Begegnung sichtbar)
+    if (!hidden && name) {
+      ctx.textAlign = "center"; ctx.textBaseline = "middle";
+      ctx.font = "bold 30px system-ui, sans-serif";
+      ctx.lineWidth = 5; ctx.strokeStyle = "rgba(0,0,0,0.8)";
+      ctx.strokeText(name, VIRTUAL_W / 2, 120);
+      ctx.fillStyle = isBoss ? "#ffd21e" : "#ffffff";
+      ctx.fillText(name, VIRTUAL_W / 2, 120);
+      ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
+    }
     if (!hidden) {
       const wob = wobbleOffset(t, id);
       const spr = getSprite(id);
