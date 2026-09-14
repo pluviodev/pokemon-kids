@@ -59,8 +59,13 @@ Genau **drei** Zustände, je einer aktiv:
 - **Spielfigur** läuft frei:
   - Touch: antippen wohin → Figur läuft dorthin.
   - Tastatur: Pfeiltasten / WASD.
-- Pokémon erscheinen zufällig an zufälligen Stellen (Spawn-Rate je nach Seltenheit).
-- Läuft die Figur **auf ein Pokémon** (Kollision) → Übergang zum Fang-Screen.
+- **Raschelndes Gras als Wegweiser:** Pokémon stehen nicht offen herum. Stattdessen
+  **wackelt/raschelt an einer zufälligen Stelle ein Grasbüschel** (mit kleinem Funkeln),
+  damit das nicht-lesende Kind sofort sieht, **wo es hinlaufen** soll. Welches Pokémon
+  drinsteckt, wird erst im Fang-Screen verraten (Überraschung).
+- Immer nur **1–2 Raschel-Stellen gleichzeitig**, damit das Ziel klar bleibt.
+  Spawn-/Raschel-Rate je nach Seltenheit (seltene rascheln seltener).
+- Läuft die Figur **ins raschelnde Gras** (Kollision) → Übergang zum Fang-Screen.
 - Läuft die Figur ins **Haus** → Sammlungs-Screen.
 - Ecke: **Lautsprecher-Symbol** (Ton an/aus).
 
