@@ -5,6 +5,7 @@ import { loadAssets } from "./sprites.js";
 import { makeWorld } from "./world.js";
 import { makeCatchScreen } from "./catchscreen.js";
 import { makeHouseScreen } from "./housescreen.js";
+import { makeWinScreen } from "./win.js";
 
 const S = VIRTUAL_W;
 const canvas = document.getElementById("game");
@@ -28,8 +29,8 @@ const catchScreen = makeCatchScreen({
   ctx, audio,
   onResult: ({ id, caught }) => {
     if (id === BOSS_ID) {
-      if (caught) storage.setWon(true);
-      else storage.penaltyAll();
+      if (caught) { storage.setWon(true); win.start(); screen = "win"; return; }
+      storage.penaltyAll();
     } else if (caught) {
       storage.addCatch(id);
     }
@@ -40,6 +41,10 @@ const catchScreen = makeCatchScreen({
 const house = makeHouseScreen({
   ctx, storage,
   onExit: () => { world.exitHouse(); screen = "world"; },
+});
+const win = makeWinScreen({
+  ctx, audio,
+  onNewGame: () => { storage.reset(); world.reset(); screen = "world"; },
 });
 
 function toVirtual(ev) {
@@ -61,6 +66,7 @@ function handleTap(ev) {
     else if (inRect(x, y, NO)) { confirmReset = false; }
     return;
   }
+  if (screen === "win") { win.onTap(x, y); return; }
   if (inRect(x, y, SND)) { audio.toggle(); return; }
   if (inRect(x, y, NEW)) { confirmReset = true; return; }
   if (screen === "world") world.onPointer(x, y);
@@ -131,6 +137,11 @@ function drawConfirm() {
 let last = performance.now();
 function loop(now) {
   const dt = Math.min(0.05, (now - last) / 1000); last = now;
+  if (screen === "win") {
+    win.update(dt); win.draw();
+    requestAnimationFrame(loop); // Sieger-Screen: keine Ecken-Buttons
+    return;
+  }
   if (!confirmReset) {
     if (screen === "world") { world.update(dt); world.draw(); }
     else if (screen === "catch") { catchScreen.update(dt); catchScreen.draw(); }

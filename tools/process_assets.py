@@ -47,51 +47,44 @@ fb = fit(fb, 900)
 fb.save(os.path.join(OUT, "catchbg.png"))
 print("catchbg", fb.size)
 
-# Pokeball freistellen: grauen Hintergrund per Flood-Fill von den Ecken entfernen,
-# danach kreisförmig maskieren (Schatten weg), zuschneiden.
-def cutout_ball(im, tol=42):
-    im = im.convert("RGBA")
-    px = im.load()
-    w, h = im.size
+# Flood-Fill von den Ecken (entfernt nur den ZUSAMMENHÄNGENDEN Außen-Hintergrund;
+# eingeschlossene helle Flächen bleiben -> gut für den Ball auf Weiß)
+def cutout_flood(im, tol=40):
+    im = im.convert("RGBA"); px = im.load(); w, h = im.size
     from collections import deque
-    seen = [[False] * w for _ in range(h)]
-    q = deque()
-    corners = [(0, 0), (w - 1, 0), (0, h - 1), (w - 1, h - 1)]
+    seen = [[False] * w for _ in range(h)]; q = deque()
     bg = px[0, 0]
-    for cx, cy in corners:
-        if not seen[cy][cx]:
-            q.append((cx, cy)); seen[cy][cx] = True
-    def close(a, b):
-        return abs(a[0]-b[0]) < tol and abs(a[1]-b[1]) < tol and abs(a[2]-b[2]) < tol
+    for cx, cy in [(0, 0), (w-1, 0), (0, h-1), (w-1, h-1)]:
+        if not seen[cy][cx]: q.append((cx, cy)); seen[cy][cx] = True
+    def close(a, b): return abs(a[0]-b[0]) < tol and abs(a[1]-b[1]) < tol and abs(a[2]-b[2]) < tol
     while q:
-        x, y = q.popleft()
-        r, g, b, a = px[x, y]
-        if not close((r, g, b), bg):
-            continue
+        x, y = q.popleft(); r, g, b, a = px[x, y]
+        if not close((r, g, b), bg): continue
         px[x, y] = (r, g, b, 0)
         for nx, ny in ((x+1, y), (x-1, y), (x, y+1), (x, y-1)):
             if 0 <= nx < w and 0 <= ny < h and not seen[ny][nx]:
                 seen[ny][nx] = True; q.append((nx, ny))
-    # roten Ball-Bereich finden -> Zentrum/Radius für Kreismaske
-    xs, ys = [], []
-    for y in range(0, h, 3):
-        for x in range(0, w, 3):
-            r, g, b, a = px[x, y]
-            if a and r > 120 and r > g + 40 and r > b + 40:
-                xs.append(x); ys.append(y)
-    cx = sum(xs) / len(xs); top = min(ys)
-    left = min(xs); right = max(xs)
-    rad = max((right - left) / 2, (sum(ys)/len(ys) - top)) + 6
-    cy = top + rad
-    mask = Image.new("L", (w, h), 0)
-    from PIL import ImageDraw
-    ImageDraw.Draw(mask).ellipse((cx - rad, cy - rad, cx + rad, cy + rad), fill=255)
-    im.putalpha(mask)
     return trim(im)
 
-ball = cutout_ball(Image.open(os.path.join(SRC, "Pokeball.png")))
-ball = fit(ball, 240)
+# Farb-Key: ALLE Pixel nahe der Ecken-Farbe transparent (auch eingeschlossene) ->
+# gut für den Pokal auf Blau (Pokal selbst ist silber/weiß, kein Blau)
+def cutout_key(im, tol=60):
+    im = im.convert("RGBA"); px = im.load(); w, h = im.size
+    bg = px[0, 0]
+    for y in range(h):
+        for x in range(w):
+            r, g, b, a = px[x, y]
+            if abs(r-bg[0]) < tol and abs(g-bg[1]) < tol and abs(b-bg[2]) < tol:
+                px[x, y] = (r, g, b, 0)
+    return trim(im)
+
+ball = fit(cutout_flood(Image.open(os.path.join(SRC, "Pokeball.png"))), 240)
 ball.save(os.path.join(OUT, "ball.png"))
+print("ball", ball.size)
+
+pokal = fit(cutout_key(Image.open(os.path.join(SRC, "Pokal.png"))), 520)
+pokal.save(os.path.join(OUT, "pokal.png"))
+print("pokal", pokal.size)
 print("ball", ball.size)
 
 # Lukas (11. Pokémon): weißen Hintergrund per Flood-Fill freistellen

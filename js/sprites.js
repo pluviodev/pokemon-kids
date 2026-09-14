@@ -37,6 +37,7 @@ const MANIFEST = [
   ["house", "assets/house.png"],
   ["catchbg", "assets/catchbg.png"],
   ["ball", "assets/ball.png"],
+  ["pokal", "assets/pokal.png"],
   ["p_up_0", "assets/player/0_0.png"],
   ["p_up_1", "assets/player/0_1.png"],
   ["p_left_0", "assets/player/1_0.png"],
