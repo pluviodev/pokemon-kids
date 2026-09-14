@@ -40,7 +40,7 @@ function handleTap(ev) {
   if (inSpeaker(x, y)) { audio.toggle(); return; }
   if (screen === "world") world.onPointer(x, y);
   else if (screen === "catch") { if (catchScreen.ballHit(x, y)) catchScreen.onTap(); }
-  else if (screen === "house") { if (house.onTap(x, y) === "back") screen = "world"; }
+  else if (screen === "house") { if (house.onTap(x, y) === "back") { world.exitHouse(); screen = "world"; } }
 }
 canvas.addEventListener("mousedown", handleTap);
 canvas.addEventListener("touchstart", handleTap, { passive: false });

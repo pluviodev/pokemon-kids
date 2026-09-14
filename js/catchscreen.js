@@ -1,6 +1,6 @@
 import { VIRTUAL_W, VIRTUAL_H, POWERBAR_PERIOD } from "./config.js";
 import { markerPos } from "./powerbar.js";
-import { attemptCatch, greenZone } from "./catch.js";
+import { isCatch, greenZone } from "./catch.js";
 import { getImg, getSprite, wobbleOffset } from "./sprites.js";
 import { POKEMON } from "./data.js";
 
@@ -41,7 +41,7 @@ export function makeCatchScreen({ ctx, audio, onResult }) {
     if (phase !== "aim") return;
     audio.play("throw");
     pos = markerPos(markerT, POWERBAR_PERIOD);
-    caught = attemptCatch(pos, rarity);
+    caught = isCatch(pos, rarity);
     phase = "throw"; throwT = 0;
   }
 
@@ -100,17 +100,19 @@ export function makeCatchScreen({ ctx, audio, onResult }) {
       const ar = spr.width && spr.height ? spr.width / spr.height : 1;
       ctx.drawImage(spr, POKE.x - size * ar / 2 + wob.dx + shake, POKE.y - size / 2 + wob.dy, size * ar, size);
     }
-    // Power-Leiste (nur beim Zielen sichtbar)
+    // Power-Leiste (nur beim Zielen sichtbar): neutrale Leiste + kleines grünes Zielband
     if (phase === "aim") {
       const g = greenZone(rarity);
-      const grad = ctx.createLinearGradient(0, BAR.y + BAR.h, 0, BAR.y);
-      grad.addColorStop(0, "#e05a5a"); grad.addColorStop(1, "#5ad06a");
-      ctx.fillStyle = grad; ctx.fillRect(BAR.x, BAR.y, BAR.w, BAR.h);
+      // Leisten-Hintergrund
+      ctx.fillStyle = "rgba(255,255,255,0.85)"; ctx.fillRect(BAR.x, BAR.y, BAR.w, BAR.h);
+      // grünes Zielband (klein, kräftig)
       const zoneTopY = BAR.y + (1 - g.to) * BAR.h;
       const zoneH = (g.to - g.from) * BAR.h;
-      ctx.fillStyle = "rgba(255,255,255,0.35)"; ctx.fillRect(BAR.x, zoneTopY, BAR.w, zoneH);
-      ctx.strokeStyle = "#0a5"; ctx.lineWidth = 4; ctx.strokeRect(BAR.x - 2, zoneTopY, BAR.w + 4, zoneH);
+      ctx.fillStyle = "#2fbf3a"; ctx.fillRect(BAR.x, zoneTopY, BAR.w, zoneH);
+      ctx.strokeStyle = "#0a5"; ctx.lineWidth = 3; ctx.strokeRect(BAR.x, zoneTopY, BAR.w, zoneH);
+      // Rahmen
       ctx.strokeStyle = "#333"; ctx.lineWidth = 3; ctx.strokeRect(BAR.x, BAR.y, BAR.w, BAR.h);
+      // Marker
       const mp = markerPos(markerT, POWERBAR_PERIOD);
       const my = BAR.y + (1 - mp) * BAR.h;
       ctx.fillStyle = "#111"; ctx.fillRect(BAR.x - 10, my - 5, BAR.w + 20, 10);
