@@ -150,3 +150,24 @@ for idx, (fr, cx) in enumerate(zip(trimmed, cxs)):
     canvas = canvas.resize((int(canvasW * scale), 200), Image.LANCZOS)
     canvas.save(os.path.join(OUT, "player", f"{r}_{c}.png"))
 print("player frames", cols * rows, "canvas", (int(canvasW * scale), 200))
+
+# Seiten-Frame 1_1: Beine zusammenschieben (nach unten hin stärker),
+# damit sich beim Laufen "gespreizt <-> zusammen" abwechselt = sichtbarer Schritt.
+def legs_together(img, f_min=0.5):
+    a = np.array(img); H, W = a.shape[:2]
+    ys, xs = np.nonzero(a[:, :, 3] > 20)
+    cx = float(xs.mean()); top = ys.min(); bot = ys.max()
+    leg_top = top + 0.55 * (bot - top)  # ab Hüfte
+    out = np.zeros_like(a)
+    for y in range(H):
+        f = 1.0 if y <= leg_top else 1 - (1 - f_min) * ((y - leg_top) / max(1, (bot - leg_top)))
+        f = max(f_min, f)
+        for x in range(W):
+            sx = int(round(cx + (x - cx) / f))
+            if 0 <= sx < W:
+                out[y, x] = a[y, sx]
+    return Image.fromarray(out)
+
+p11 = os.path.join(OUT, "player", "1_1.png")
+legs_together(Image.open(p11).convert("RGBA")).save(p11)
+print("legs_together -> 1_1.png")

@@ -37,7 +37,8 @@ export function makeWorld({ ctx, audio, storage, onEncounter, onEnterHouse }) {
     if (allMaxed(counts)) {
       if (storage.isWon()) { spawns = []; return; }
       if (!spawns.some(s => s.id === BOSS_ID)) {
-        spawns = [{ x: 0.5 * S, y: 0.55 * S, id: BOSS_ID, phase: 0, boss: true }];
+        // großes Grasbüschel ganz unten -> reingehen startet den Bossfight
+        spawns = [{ x: 0.5 * S, y: 0.90 * S, id: BOSS_ID, phase: 0, boss: true }];
       }
       return;
     }
@@ -77,7 +78,8 @@ export function makeWorld({ ctx, audio, storage, onEncounter, onEnterHouse }) {
     wasInDoor = inDoor;
 
     for (const s of spawns) {
-      if (hitsGrass(player, s, GRASS_HIT_RADIUS)) {
+      const rad = s.boss ? GRASS_HIT_RADIUS * 1.8 : GRASS_HIT_RADIUS;
+      if (hitsGrass(player, s, rad)) {
         audio.play("encounter");
         const id = s.id;
         spawns = spawns.filter(x => x !== s);
@@ -94,14 +96,19 @@ export function makeWorld({ ctx, audio, storage, onEncounter, onEnterHouse }) {
 
     for (const s of spawns) {
       if (s.boss) {
-        const spr = getImg("pk11");
-        const pulse = 0.6 + 0.4 * Math.abs(Math.sin(t * 3));
-        ctx.save();
-        ctx.shadowColor = "rgba(255,210,50," + pulse + ")";
-        ctx.shadowBlur = 55;
-        const size = 0.26 * S, ar = spr && spr.height ? spr.width / spr.height : 1;
-        if (spr) ctx.drawImage(spr, s.x - size * ar / 2, s.y - size, size * ar, size);
-        ctx.restore();
+        // doppelt großes, wackelndes Grasbüschel (keine kleinen mehr)
+        const sway = Math.sin(t * 10 + s.phase) * 24;
+        ctx.strokeStyle = "#2f7d22"; ctx.lineWidth = 24; ctx.lineCap = "round";
+        for (let i = -2; i <= 2; i++) {
+          ctx.beginPath();
+          ctx.moveTo(s.x + i * 28, s.y + 64);
+          ctx.lineTo(s.x + i * 28 + sway, s.y - 64);
+          ctx.stroke();
+        }
+        ctx.fillStyle = "rgba(255,255,150," + (0.4 + 0.6 * Math.abs(Math.sin(t * 8 + s.phase))) + ")";
+        for (const sp of [[54, -66], [-50, -26], [70, 12], [0, -80]]) {
+          ctx.beginPath(); ctx.arc(s.x + sp[0], s.y + sp[1], 10, 0, Math.PI * 2); ctx.fill();
+        }
         continue;
       }
       const w = Math.sin(t * 12 + s.phase) * 12;
