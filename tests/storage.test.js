@@ -11,20 +11,42 @@ function fakeBackend() {
   };
 }
 
-test("loadCaught starts empty and addCaught persists ids", () => {
+test("counts start at 0 and addCatch increments, capped at 10", () => {
   const b = fakeBackend();
   const s = makeStorage(b);
-  assert.deepEqual([...s.loadCaught()], []);
-  s.addCaught(3);
-  s.addCaught(3); // idempotent
-  s.addCaught(7);
-  assert.deepEqual([...makeStorage(b).loadCaught()].sort(), [3, 7]);
+  assert.equal(s.getCount(3), 0);
+  for (let i = 0; i < 12; i++) s.addCatch(3);
+  assert.equal(makeStorage(b).getCount(3), 10); // gedeckelt
 });
 
-test("corrupt caught data yields empty set", () => {
+test("penaltyAll subtracts one from every counter (min 0) and clears won", () => {
   const b = fakeBackend();
-  b.setItem("pk_caught", "not-json");
-  assert.deepEqual([...makeStorage(b).loadCaught()], []);
+  const s = makeStorage(b);
+  s.addCatch(1); s.addCatch(1); s.addCatch(2);
+  s.setWon(true);
+  s.penaltyAll();
+  const s2 = makeStorage(b);
+  assert.equal(s2.getCount(1), 1);
+  assert.equal(s2.getCount(2), 0);
+  assert.equal(s2.getCount(5), 0); // war 0, bleibt 0
+  assert.equal(s2.isWon(), false);
+});
+
+test("won flag persists and reset wipes everything", () => {
+  const b = fakeBackend();
+  const s = makeStorage(b);
+  s.addCatch(4); s.setWon(true);
+  assert.equal(makeStorage(b).isWon(), true);
+  s.reset();
+  const s2 = makeStorage(b);
+  assert.equal(s2.getCount(4), 0);
+  assert.equal(s2.isWon(), false);
+});
+
+test("corrupt counts data yields all zeros", () => {
+  const b = fakeBackend();
+  b.setItem("pk_counts", "not-json");
+  assert.equal(makeStorage(b).getCount(1), 0);
 });
 
 test("sound defaults on and can be toggled off", () => {

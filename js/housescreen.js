@@ -1,13 +1,13 @@
-import { VIRTUAL_W, VIRTUAL_H, PLAYER_SPEED } from "./config.js";
+import { VIRTUAL_W, VIRTUAL_H, PLAYER_SPEED, MAX_PER_SPECIES } from "./config.js";
 import { getSlots } from "./collection.js";
-import { getSprite, getImg, playerFrame } from "./sprites.js";
+import { getSprite, getGoldSprite, getImg, playerFrame } from "./sprites.js";
 import { stepPlayer } from "./movement.js";
 
 const OFY = (VIRTUAL_H - VIRTUAL_W) / 2; // Haus-Bild quadratisch, vertikal zentriert
 const XS = [0.171, 0.335, 0.498, 0.663, 0.827];
 const ROW_Y = [0.34, 0.60];
-const BOUNDS = { minX: 58, minY: 300, maxX: 422, maxY: 612 };
-const EXIT = { x: 198, y: 598, w: 84, h: 48 }; // Tür unten = raus
+const BOUNDS = { minX: 40, minY: 272, maxX: 440, maxY: 616 };
+const EXIT = { x: 198, y: 600, w: 84, h: 48 }; // Tür unten = raus
 
 function pedestalPos(i) {
   const fx = XS[i % 5];
@@ -80,22 +80,29 @@ export function makeHouseScreen({ ctx, storage, onExit }) {
     const house = getImg("house");
     if (house) ctx.drawImage(house, 0, OFY, VIRTUAL_W, VIRTUAL_W);
 
-    const slots = getSlots(storage.loadCaught());
+    const slots = getSlots(storage.loadCounts());
+    ctx.textAlign = "center"; ctx.textBaseline = "middle";
     slots.forEach((s, i) => {
       const p = pedestalPos(i);
-      if (s.caught) {
-        const spr = getSprite(s.id);
-        const h = 92, ar = spr.width && spr.height ? spr.width / spr.height : 1;
-        ctx.drawImage(spr, p.x - h * ar / 2, p.y - h + 16, h * ar, h);
+      if (s.count > 0) {
+        const spr = s.maxed ? getGoldSprite(s.id) : getSprite(s.id);
+        const h = 90, ar = spr.width && spr.height ? spr.width / spr.height : 1;
+        if (s.maxed) { ctx.save(); ctx.shadowColor = "rgba(255,210,50,0.9)"; ctx.shadowBlur = 22; }
+        ctx.drawImage(spr, p.x - h * ar / 2, p.y - h + 14, h * ar, h);
+        if (s.maxed) ctx.restore();
       } else {
         ctx.fillStyle = "rgba(20,12,6,0.5)";
-        ctx.beginPath(); ctx.arc(p.x, p.y - 18, 26, 0, Math.PI * 2); ctx.fill();
-        ctx.strokeStyle = "#d8c49a"; ctx.lineWidth = 6; ctx.lineCap = "round";
-        ctx.beginPath(); ctx.arc(p.x, p.y - 26, 10, Math.PI * 0.85, Math.PI * 2.15); ctx.stroke();
-        ctx.beginPath(); ctx.moveTo(p.x, p.y - 16); ctx.lineTo(p.x, p.y - 6); ctx.stroke();
-        ctx.fillStyle = "#d8c49a"; ctx.beginPath(); ctx.arc(p.x, p.y + 2, 4, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.arc(p.x, p.y - 20, 24, 0, Math.PI * 2); ctx.fill();
       }
+      // Zähler X/10 unter dem Podest
+      const label = s.count + "/" + MAX_PER_SPECIES;
+      ctx.font = "bold 22px system-ui, sans-serif";
+      ctx.lineWidth = 4; ctx.strokeStyle = "rgba(0,0,0,0.75)";
+      ctx.strokeText(label, p.x, p.y + 30);
+      ctx.fillStyle = s.maxed ? "#ffd21e" : "#ffffff";
+      ctx.fillText(label, p.x, p.y + 30);
     });
+    ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
 
     // Spieler (läuft im Raum)
     const step = moving ? (Math.floor(stepT / 0.22) % 2) : 0;

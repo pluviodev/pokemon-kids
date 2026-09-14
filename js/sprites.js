@@ -49,6 +49,7 @@ export function loadAssets(onReady) {
   const entries = [
     ...MANIFEST,
     ...POKEMON.map(p => ["pk" + p.id, p.sprite]),
+    ["pk11", "assets/pokemon/11.png"], // Lukas (Boss)
   ];
   let pending = entries.length;
   const done = () => { if (--pending === 0 && onReady) onReady(); };
@@ -70,6 +71,23 @@ export function getImg(key) {
 
 export function getSprite(id) {
   return images.get("pk" + id) || makePlaceholder(id);
+}
+
+// Gold-getönte Variante (für 10/10 fertig gefangene Arten), gecacht.
+const goldCache = new Map();
+export function getGoldSprite(id) {
+  if (goldCache.has(id)) return goldCache.get(id);
+  const spr = getSprite(id);
+  const c = document.createElement("canvas");
+  c.width = spr.width; c.height = spr.height;
+  const g = c.getContext("2d");
+  g.drawImage(spr, 0, 0);
+  g.globalCompositeOperation = "source-atop"; // nur auf die Sprite-Pixel
+  g.fillStyle = "rgba(255,205,40,0.55)";
+  g.fillRect(0, 0, c.width, c.height);
+  g.globalCompositeOperation = "source-over";
+  goldCache.set(id, c);
+  return c;
 }
 
 // Spieler-Frame: dir in {up,down,left,right}, step 0/1. Rechts = gespiegeltes Links.

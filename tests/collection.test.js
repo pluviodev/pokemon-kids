@@ -7,14 +7,13 @@ const pool = [
   { id: 2, sprite: "b.png", rarity: "rare" },
 ];
 
-test("marks caught ids and leaves others as shadow", () => {
-  const slots = getSlots(new Set([1]), pool);
-  assert.equal(slots.length, 2);
-  assert.deepEqual(slots[0], { id: 1, sprite: "a.png", rarity: "common", caught: true });
-  assert.equal(slots[1].caught, false);
+test("slots carry count and maxed flag", () => {
+  const slots = getSlots({ 1: 10, 2: 3 }, pool);
+  assert.deepEqual(slots[0], { id: 1, sprite: "a.png", rarity: "common", count: 10, maxed: true });
+  assert.deepEqual(slots[1], { id: 2, sprite: "b.png", rarity: "rare", count: 3, maxed: false });
 });
 
-test("empty set means nothing caught", () => {
-  const slots = getSlots(new Set(), pool);
-  assert.ok(slots.every(s => s.caught === false));
+test("missing counts default to 0/not maxed", () => {
+  const slots = getSlots({}, pool);
+  assert.ok(slots.every(s => s.count === 0 && s.maxed === false));
 });

@@ -1,14 +1,14 @@
 import { VIRTUAL_W, VIRTUAL_H, PLAYER_SPEED, MAX_ACTIVE_SPAWNS,
-         SPAWN_INTERVAL, GRASS_HIT_RADIUS } from "./config.js";
+         SPAWN_INTERVAL, GRASS_HIT_RADIUS, BOSS_ID } from "./config.js";
 import { stepPlayer, hitsGrass, atHouseDoor } from "./movement.js";
-import { pickSpawnId } from "./spawn.js";
+import { pickSpawnId, allMaxed } from "./spawn.js";
 import { getImg, playerFrame } from "./sprites.js";
 
 const DOOR = { x: 196, y: 130, w: 66, h: 66 };
-const BOUNDS = { minX: 36, minY: 140, maxX: 444, maxY: 790 };
+const BOUNDS = { minX: 22, minY: 150, maxX: 458, maxY: 792 };
 const GRASS = "#95c83a";
 
-export function makeWorld({ ctx, audio, onEncounter, onEnterHouse }) {
+export function makeWorld({ ctx, audio, storage, onEncounter, onEnterHouse }) {
   let player = { x: 240, y: 540 };
   let target = { x: 240, y: 540 };
   let keys = new Set();
@@ -31,10 +31,19 @@ export function makeWorld({ ctx, audio, onEncounter, onEnterHouse }) {
   }
 
   function trySpawn() {
+    const counts = storage.loadCounts();
+    // Alle Arten golden: Boss (Lukas) erscheint einmalig, solange nicht gewonnen
+    if (allMaxed(counts)) {
+      if (storage.isWon()) { spawns = []; return; }
+      if (!spawns.some(s => s.id === BOSS_ID)) {
+        spawns = [{ x: VIRTUAL_W / 2, y: 430, id: BOSS_ID, phase: 0, boss: true }];
+      }
+      return;
+    }
     if (spawns.length >= MAX_ACTIVE_SPAWNS) return;
     const x = 60 + Math.random() * (VIRTUAL_W - 120);
     const y = 260 + Math.random() * (VIRTUAL_H - 340);
-    spawns.push({ x, y, id: pickSpawnId(), phase: Math.random() * 6 });
+    spawns.push({ x, y, id: pickSpawnId(Math.random, counts), phase: Math.random() * 6 });
   }
 
   function keyTarget() {
@@ -90,8 +99,19 @@ export function makeWorld({ ctx, audio, onEncounter, onEnterHouse }) {
       const dw = world.width * scale, dh = world.height * scale;
       ctx.drawImage(world, (VIRTUAL_W - dw) / 2, (VIRTUAL_H - dh) / 2, dw, dh);
     }
-    // Raschel-Gras (Wegweiser)
+    // Raschel-Gras (Wegweiser) bzw. Boss (Lukas) sichtbar mit Gold-Glühen
     for (const s of spawns) {
+      if (s.boss) {
+        const spr = getImg("pk11");
+        const pulse = 0.6 + 0.4 * Math.abs(Math.sin(t * 3));
+        ctx.save();
+        ctx.shadowColor = "rgba(255,210,50," + pulse + ")";
+        ctx.shadowBlur = 40;
+        const size = 150, ar = spr && spr.height ? spr.width / spr.height : 1;
+        if (spr) ctx.drawImage(spr, s.x - size * ar / 2, s.y - size, size * ar, size);
+        ctx.restore();
+        continue;
+      }
       const w = Math.sin(t * 12 + s.phase) * 7;
       ctx.strokeStyle = "#2f7d22"; ctx.lineWidth = 7; ctx.lineCap = "round";
       for (let i = -1; i <= 1; i++) {

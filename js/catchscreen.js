@@ -1,34 +1,47 @@
-import { VIRTUAL_W, VIRTUAL_H, POWERBAR_PERIOD } from "./config.js";
+import { VIRTUAL_W, VIRTUAL_H, POWERBAR_PERIOD, BOSS_ID, BOSS_BAND } from "./config.js";
 import { markerPos } from "./powerbar.js";
-import { isCatch, greenZone } from "./catch.js";
+import { bandSize, makeBand, randomCenter, inBand } from "./catch.js";
 import { getImg, getSprite, wobbleOffset } from "./sprites.js";
 import { POKEMON } from "./data.js";
 
-const BAR = { x: 386, y: 210, w: 46, h: 400 }; // vertikale Power-Leiste
-const BALL = { x: 240, y: 706, r: 58 };        // Ball-Button
-const POKE = { x: 240, y: 330 };               // Position des wilden Pokémon
+const BAR = { x: 386, y: 210, w: 46, h: 400 };
+const BALL = { x: 240, y: 706, r: 58 };
+const POKE = { x: 240, y: 330 };
 const THROW_TIME = 0.45;
+const BAND_PERIOD = 1.9; // Band-Bewegung beim Boss (anders getaktet als Marker)
 
 export function makeCatchScreen({ ctx, audio, onResult }) {
-  let id = 1, rarity = "common";
+  let id = 1, isBoss = false;
   let phase = "aim";       // aim | throw | success | fail
   let t = 0, resultT = 0, throwT = 0;
-  let markerT = 0, pos = 0;
+  let markerT = 0, bandT = 0, pos = 0;
+  let bandSz = 0.16, bandCenter = 0.5, band = { from: 0.4, to: 0.6 };
   let caught = false;
   let particles = [];
 
   function start(newId) {
     id = newId;
-    rarity = (POKEMON.find(p => p.id === id) || {}).rarity || "common";
-    phase = "aim"; t = 0; markerT = 0; pos = 0; resultT = 0; throwT = 0;
+    isBoss = id === BOSS_ID;
+    const rarity = (POKEMON.find(p => p.id === id) || {}).rarity || "rare";
+    bandSz = isBoss ? BOSS_BAND : bandSize(rarity);
+    bandCenter = randomCenter(bandSz);          // Zufallsposition
+    band = makeBand(bandCenter, bandSz);
+    phase = "aim"; t = 0; markerT = 0; bandT = 0; pos = 0;
     caught = false; particles = [];
   }
 
-  function spawnFireworks() {
-    particles = [];
-    for (let i = 0; i < 70; i++) {
+  // Beim Boss wandert das Band; sonst bleibt es fest.
+  function currentBand() {
+    if (!isBoss) return band;
+    const m = bandSz / 2;
+    const c = m + markerPos(bandT, BAND_PERIOD) * (1 - 2 * m);
+    return makeBand(c, bandSz);
+  }
+
+  function spawnFireworks(n) {
+    for (let i = 0; i < n; i++) {
       const a = Math.random() * Math.PI * 2;
-      const sp = 70 + Math.random() * 180;
+      const sp = 70 + Math.random() * 200;
       particles.push({
         x: POKE.x, y: POKE.y,
         vx: Math.cos(a) * sp, vy: Math.sin(a) * sp,
@@ -41,48 +54,45 @@ export function makeCatchScreen({ ctx, audio, onResult }) {
     if (phase !== "aim") return;
     audio.play("throw");
     pos = markerPos(markerT, POWERBAR_PERIOD);
-    caught = isCatch(pos, rarity);
+    caught = inBand(pos, currentBand());
     phase = "throw"; throwT = 0;
   }
 
   function update(dt) {
     t += dt;
-    if (phase === "aim") { markerT += dt; return; }
+    if (phase === "aim") { markerT += dt; if (isBoss) bandT += dt; return; }
     if (phase === "throw") {
       throwT += dt;
       if (throwT >= THROW_TIME) {
         phase = caught ? "success" : "fail";
         resultT = 0;
-        if (caught) { audio.play("caught"); spawnFireworks(); }
-        else { audio.play("flee"); }
+        if (caught) { audio.play("caught"); spawnFireworks(isBoss ? 140 : 70); }
+        else audio.play("flee");
       }
       return;
     }
     resultT += dt;
     if (phase === "success") {
+      if (isBoss && resultT < 1.2 && Math.floor(resultT * 8) % 2 === 0) spawnFireworks(12);
       for (const p of particles) {
-        p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 130 * dt; p.life -= dt * 0.7;
+        p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 130 * dt; p.life -= dt * 0.6;
       }
       particles = particles.filter(p => p.life > 0);
     }
-    if (resultT > 1.6) onResult({ id, caught });
+    if (resultT > (isBoss ? 2.4 : 1.6)) onResult({ id, caught });
   }
 
   function drawBall(x, y, r) {
     const img = getImg("ball");
     if (img) ctx.drawImage(img, x - r, y - r, r * 2, r * 2);
     else {
-      ctx.fillStyle = "#e03b3b";
-      ctx.beginPath(); ctx.arc(x, y, r, Math.PI, 0); ctx.fill();
-      ctx.fillStyle = "#fff";
-      ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI); ctx.fill();
-      ctx.strokeStyle = "#222"; ctx.lineWidth = 4;
-      ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.stroke();
+      ctx.fillStyle = "#e03b3b"; ctx.beginPath(); ctx.arc(x, y, r, Math.PI, 0); ctx.fill();
+      ctx.fillStyle = "#fff"; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI); ctx.fill();
+      ctx.strokeStyle = "#222"; ctx.lineWidth = 4; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.stroke();
     }
   }
 
   function draw() {
-    // Wald-Hintergrund (Cover-Crop auf Hochformat)
     ctx.fillStyle = "#7fae5a"; ctx.fillRect(0, 0, VIRTUAL_W, VIRTUAL_H);
     const bg = getImg("catchbg");
     if (bg) {
@@ -90,34 +100,29 @@ export function makeCatchScreen({ ctx, audio, onResult }) {
       const dw = bg.width * scale, dh = bg.height * scale;
       ctx.drawImage(bg, (VIRTUAL_W - dw) / 2, (VIRTUAL_H - dh) / 2, dw, dh);
     }
-    // Wildes Pokémon (bei Erfolg nach dem Wurf ausblenden = im Ball)
     const hidden = phase === "success";
     if (!hidden) {
       const wob = wobbleOffset(t, id);
       const spr = getSprite(id);
-      const size = 210;
+      const size = isBoss ? 240 : 210;
       const shake = phase === "fail" ? Math.sin(t * 40) * 7 : 0;
       const ar = spr.width && spr.height ? spr.width / spr.height : 1;
       ctx.drawImage(spr, POKE.x - size * ar / 2 + wob.dx + shake, POKE.y - size / 2 + wob.dy, size * ar, size);
     }
-    // Power-Leiste (nur beim Zielen sichtbar): neutrale Leiste + kleines grünes Zielband
+    // Leiste + Band (nur beim Zielen)
     if (phase === "aim") {
-      const g = greenZone(rarity);
-      // Leisten-Hintergrund
+      const b = currentBand();
       ctx.fillStyle = "rgba(255,255,255,0.85)"; ctx.fillRect(BAR.x, BAR.y, BAR.w, BAR.h);
-      // grünes Zielband (klein, kräftig)
-      const zoneTopY = BAR.y + (1 - g.to) * BAR.h;
-      const zoneH = (g.to - g.from) * BAR.h;
+      const zoneTopY = BAR.y + (1 - b.to) * BAR.h;
+      const zoneH = (b.to - b.from) * BAR.h;
       ctx.fillStyle = "#2fbf3a"; ctx.fillRect(BAR.x, zoneTopY, BAR.w, zoneH);
       ctx.strokeStyle = "#0a5"; ctx.lineWidth = 3; ctx.strokeRect(BAR.x, zoneTopY, BAR.w, zoneH);
-      // Rahmen
       ctx.strokeStyle = "#333"; ctx.lineWidth = 3; ctx.strokeRect(BAR.x, BAR.y, BAR.w, BAR.h);
-      // Marker
       const mp = markerPos(markerT, POWERBAR_PERIOD);
       const my = BAR.y + (1 - mp) * BAR.h;
       ctx.fillStyle = "#111"; ctx.fillRect(BAR.x - 10, my - 5, BAR.w + 20, 10);
     }
-    // Ball: Button (beim Zielen), fliegend (beim Wurf), ruhend (bei Erfolg)
+    // Ball
     if (phase === "aim") drawBall(BALL.x, BALL.y, BALL.r);
     else if (phase === "throw") {
       const k = Math.min(1, throwT / THROW_TIME);
@@ -129,7 +134,6 @@ export function makeCatchScreen({ ctx, audio, onResult }) {
     } else if (phase === "fail") {
       drawBall(POKE.x + 60, POKE.y + 120 + resultT * 40, 34);
     }
-    // Feuerwerk
     for (const p of particles) {
       ctx.globalAlpha = Math.max(0, p.life);
       ctx.fillStyle = `hsl(${p.hue},100%,60%)`;

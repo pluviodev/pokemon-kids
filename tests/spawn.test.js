@@ -1,25 +1,30 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { pickSpawnId } from "../js/spawn.js";
+import { pickSpawnId, availableIds, allMaxed } from "../js/spawn.js";
+import { BOSS_ID, MAX_PER_SPECIES } from "../js/config.js";
 
 const pool = [
-  { id: 1, rarity: "common" },   // weight 5
-  { id: 2, rarity: "rare" },     // weight 1.5
+  { id: 1, rarity: "common" },
+  { id: 2, rarity: "rare" },
 ];
-// Gesamtgewicht 6.5. rng()*6.5: <5 -> id 1, sonst id 2.
 
-test("low rng lands in the first (heavier) bucket", () => {
-  assert.equal(pickSpawnId(() => 0.0, pool), 1);
-  assert.equal(pickSpawnId(() => 0.7, pool), 1); // 0.7*6.5=4.55 < 5
+test("availableIds excludes maxed species", () => {
+  const counts = { 1: MAX_PER_SPECIES, 2: 3 };
+  assert.deepEqual(availableIds(counts, pool).map(p => p.id), [2]);
 });
 
-test("high rng lands in the rare bucket", () => {
-  assert.equal(pickSpawnId(() => 0.9, pool), 2); // 0.9*6.5=5.85 >= 5
+test("allMaxed true only when every species is maxed", () => {
+  assert.equal(allMaxed({ 1: 10, 2: 10 }, pool), true);
+  assert.equal(allMaxed({ 1: 10, 2: 9 }, pool), false);
 });
 
-test("always returns an id from the pool", () => {
+test("pickSpawnId never returns a maxed species", () => {
+  const counts = { 1: MAX_PER_SPECIES, 2: 0 };
   for (let i = 0; i < 20; i++) {
-    const id = pickSpawnId(() => i / 20, pool);
-    assert.ok([1, 2].includes(id));
+    assert.equal(pickSpawnId(() => i / 20, counts, pool), 2);
   }
+});
+
+test("pickSpawnId returns BOSS when all species maxed", () => {
+  assert.equal(pickSpawnId(() => 0.5, { 1: 10, 2: 10 }, pool), BOSS_ID);
 });

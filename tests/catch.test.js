@@ -1,28 +1,35 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
-import { greenZone, isCatch } from "../js/catch.js";
-import { GREEN_CENTER } from "../js/config.js";
+import { bandSize, makeBand, randomCenter, inBand } from "../js/catch.js";
 
-test("greenZone is a small band centered on GREEN_CENTER", () => {
-  const g = greenZone("common");
-  assert.ok(Math.abs((g.from + g.to) / 2 - GREEN_CENTER) < 1e-9);
-  assert.ok(g.to - g.from < 0.2); // klein
+test("bandSize shrinks with rarity", () => {
+  assert.ok(bandSize("common") > bandSize("uncommon"));
+  assert.ok(bandSize("uncommon") > bandSize("rare"));
 });
 
-test("green zone shrinks with rarity", () => {
-  const c = greenZone("common"), u = greenZone("uncommon"), r = greenZone("rare");
-  assert.ok((c.to - c.from) > (u.to - u.from));
-  assert.ok((u.to - u.from) > (r.to - r.from));
+test("makeBand centers a band and clamps to [0,1]", () => {
+  const b = makeBand(0.5, 0.2);
+  assert.ok(Math.abs((b.from + b.to) / 2 - 0.5) < 1e-9);
+  assert.equal(makeBand(0.0, 0.2).from, 0);
+  assert.equal(makeBand(1.0, 0.2).to, 1);
 });
 
-test("isCatch true only inside the band", () => {
-  assert.equal(isCatch(GREEN_CENTER, "common"), true);       // Mitte trifft
-  assert.equal(isCatch(0.2, "common"), false);               // weit daneben
-  assert.equal(isCatch(1, "common"), false);                 // ganz oben daneben
+test("randomCenter keeps the whole band on the bar", () => {
+  const size = 0.16;
+  for (let i = 0; i <= 10; i++) {
+    const c = randomCenter(size, () => i / 10);
+    const b = makeBand(c, size);
+    assert.ok(b.from >= 0 && b.to <= 1, `band ${b.from}-${b.to}`);
+  }
 });
 
-test("rare band is so small the common-edge misses it", () => {
-  const c = greenZone("common");
-  // Punkt am Rand des common-Bands liegt außerhalb des schmalen rare-Bands
-  assert.equal(isCatch(c.from, "rare"), false);
+test("randomCenter varies with rng", () => {
+  assert.notEqual(randomCenter(0.1, () => 0.1), randomCenter(0.1, () => 0.9));
+});
+
+test("inBand true only inside", () => {
+  const b = makeBand(0.5, 0.2); // 0.4..0.6
+  assert.equal(inBand(0.5, b), true);
+  assert.equal(inBand(0.39, b), false);
+  assert.equal(inBand(0.61, b), false);
 });

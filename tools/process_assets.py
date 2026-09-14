@@ -94,6 +94,32 @@ ball = fit(ball, 240)
 ball.save(os.path.join(OUT, "ball.png"))
 print("ball", ball.size)
 
+# Lukas (11. Pokémon): weißen Hintergrund per Flood-Fill freistellen
+def cutout_white(im, tol=36):
+    im = im.convert("RGBA")
+    px = im.load(); w, h = im.size
+    from collections import deque
+    seen = [[False] * w for _ in range(h)]
+    q = deque()
+    for cx, cy in [(0, 0), (w - 1, 0), (0, h - 1), (w - 1, h - 1)]:
+        if not seen[cy][cx]:
+            q.append((cx, cy)); seen[cy][cx] = True
+    def white(p): return p[0] > 255 - tol and p[1] > 255 - tol and p[2] > 255 - tol
+    while q:
+        x, y = q.popleft()
+        r, g, b, a = px[x, y]
+        if not white((r, g, b)):
+            continue
+        px[x, y] = (r, g, b, 0)
+        for nx, ny in ((x+1, y), (x-1, y), (x, y+1), (x, y-1)):
+            if 0 <= nx < w and 0 <= ny < h and not seen[ny][nx]:
+                seen[ny][nx] = True; q.append((nx, ny))
+    return trim(im)
+
+lukas = fit(cutout_white(Image.open(os.path.join(SRC, "lukas.png"))), 360)
+lukas.save(os.path.join(OUT, "pokemon", "11.png"))
+print("lukas", lukas.size)
+
 # Player-Spritesheet: 2 Spalten x 4 Reihen
 sheet = Image.open(os.path.join(SRC, "ChatGPT Image 14. Sept. 2026, 14_04_45.png")).convert("RGBA")
 cols, rows = 2, 4

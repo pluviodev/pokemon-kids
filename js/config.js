@@ -4,9 +4,11 @@ export const PLAYER_SPEED = 180; // virtuelle Pixel pro Sekunde
 export const RARITIES = ["common", "uncommon", "rare"];
 export const EASE = { common: 1.0, uncommon: 0.75, rare: 0.55 };
 // Kleiner grüner Zielbereich (Bruchteil der Leiste). Treffen = gefangen, sonst nicht.
-// Seltenere Pokémon = kleinerer Bereich.
+// Seltenere Pokémon = kleinerer Bereich. Position wird pro Begegnung zufällig gesetzt.
 export const GREEN_ZONE = { common: 0.16, uncommon: 0.11, rare: 0.07 };
-export const GREEN_CENTER = 0.8; // Mitte des Zielbereichs auf der Leiste (0=unten,1=oben)
+export const MAX_PER_SPECIES = 10; // 10x fangen -> Sprite wird golden, taucht nicht mehr auf
+export const BOSS_ID = 11;         // Lukas, erscheint wenn alle 10 Arten golden sind
+export const BOSS_BAND = 0.09;     // Bandgröße beim Boss (beide Balken bewegen sich)
 export const SPAWN_WEIGHT = { common: 5, uncommon: 3, rare: 1.5 };
 export const MAX_ACTIVE_SPAWNS = 2;
 export const SPAWN_INTERVAL = 2.5; // Sekunden zwischen Spawn-Versuchen
