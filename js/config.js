@@ -14,4 +14,4 @@ export const SPAWN_WEIGHT = { common: 5, uncommon: 3, rare: 1.5 };
 export const MAX_ACTIVE_SPAWNS = 2;
 export const SPAWN_INTERVAL = 2.5; // Sekunden zwischen Spawn-Versuchen
 export const GRASS_HIT_RADIUS = 82; // virtuelle Pixel
-export const POWERBAR_PERIOD = 1.4; // Sekunden für einen Hoch-Runter-Zyklus
+export const POWERBAR_PERIOD = 2.0; // Sekunden für einen Hoch-Runter-Zyklus (langsamer = leichter)
