@@ -13,11 +13,11 @@ const BTN = { x: S / 2 - 0.16 * S, y: 0.74 * S, w: 0.32 * S, h: 0.13 * S };
 export function makeWinScreen({ ctx, audio, onNewGame }) {
   let t = 0, spawnAcc = 0, soundAcc = 0, popped = false;
   let particles = [], confetti = [];
-  let partyStarted = false, done = false;
+  let partyStarted = false;
 
   function start() {
     t = 0; spawnAcc = 0; soundAcc = 0; popped = false;
-    particles = []; confetti = []; partyStarted = false; done = false;
+    particles = []; confetti = []; partyStarted = false;
     audio.play("caught");
     for (let i = 0; i < 60; i++) confetti.push(newConfetti());
   }
@@ -35,7 +35,6 @@ export function makeWinScreen({ ctx, audio, onNewGame }) {
   }
 
   function phase() {
-    if (done) return "trophy";
     if (t < T_POP) return "pop";
     if (t < T_DANCE_END) return "dance";
     if (t < T_PARTY_END) return "party";
@@ -160,7 +159,7 @@ export function makeWinScreen({ ctx, audio, onNewGame }) {
   }
 
   function onTap(x, y) {
-    if (phase() !== "trophy") { done = true; return; } // überspringen
+    if (phase() !== "trophy") return; // Feier NICHT abbrechbar
     if (x >= BTN.x && x <= BTN.x + BTN.w && y >= BTN.y && y <= BTN.y + BTN.h) onNewGame();
   }
 
