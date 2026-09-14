@@ -84,9 +84,10 @@ Genau **drei** Zustände, je einer aktiv:
   4. Ball fliegt, Pokémon hüpft rein, **Wackel-Wackel**-Animation.
   5. **Erfolg:** ✨ Sterne/Konfetti + kleines **Feuerwerk** + fröhlicher Ton → Pokémon
      „fliegt" in die Sammlung → zurück zur Wiese.
-  6. **Fehlschlag:** sanftes „Puff" + leiser Ton, **man darf gleich nochmal**
-     (kinderfreundlich, kein Frust). Nach **2–3 Fehlversuchen** „entwischt" es → zurück
-     zur Wiese, taucht später neu auf.
+  6. **Fehlschlag:** **nur ein Wurf!** Daneben → Pokémon **flieht sofort** (Puff + leiser
+     „entwischt"-Ton, wackelt weg) → zurück zur Wiese. Es ist für **diese Begegnung weg**,
+     kann aber **später wieder** im Gras rascheln. Kein zweiter Versuch — Anspannung beim
+     Timing der Power-Leiste.
 - Alle Rückmeldungen rein visuell/akustisch, **nie ein Wort**.
 
 ### 3. 🏠 Haus / Sammlung
@@ -120,7 +121,8 @@ Jedes Pokémon ist ein Objekt:
 - Endgültige Chance = `p × ease[rarity]` (z.B. common 1.0, uncommon 0.75, rare 0.5).
 - Grüne Zone (visuelles Ziel) skaliert mit rarity (common breit, rare schmal) —
   dient der optischen Führung; die eigentliche Chance ergibt sich aus der Höhe.
-- Zufalls-Roll entscheidet Erfolg. Fehlversuche zählen pro Begegnung; nach 3 → entwischt.
+- Zufalls-Roll entscheidet Erfolg. **Genau ein Wurf pro Begegnung:** bei Misserfolg flieht
+  das Pokémon sofort (kein zweiter Versuch), kann aber später erneut spawnen/rascheln.
 
 ## Persistenz (`storage.js`)
 
@@ -141,7 +143,8 @@ Jedes Pokémon ist ein Objekt:
 - **Nirgends** Text, Zahlen oder Namen im Spielgeschehen.
 - Buttons ausschließlich als klare, große Symbole.
 - Farbe + Bewegung + Ton als Rückmeldung, redundant (nicht nur Farbe allein).
-- Großzügige Tap-Ziele, verzeihende Fang-Mechanik.
+- Großzügige Tap-Ziele. Fangen ist ein Wurf (Spannung), aber verpasste Pokémon kommen
+  später wieder — nichts ist endgültig verloren.
 
 ## Teststrategie
 
