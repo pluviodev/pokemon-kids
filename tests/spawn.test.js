@@ -14,8 +14,8 @@ test("availableIds excludes maxed species", () => {
 });
 
 test("allMaxed true only when every species is maxed", () => {
-  assert.equal(allMaxed({ 1: 10, 2: 10 }, pool), true);
-  assert.equal(allMaxed({ 1: 10, 2: 9 }, pool), false);
+  assert.equal(allMaxed({ 1: MAX_PER_SPECIES, 2: MAX_PER_SPECIES }, pool), true);
+  assert.equal(allMaxed({ 1: MAX_PER_SPECIES, 2: MAX_PER_SPECIES - 1 }, pool), false);
 });
 
 test("pickSpawnId never returns a maxed species", () => {

@@ -1,6 +1,7 @@
 import { test } from "node:test";
 import assert from "node:assert/strict";
 import { makeStorage } from "../js/storage.js";
+import { MAX_PER_SPECIES } from "../js/config.js";
 
 function fakeBackend() {
   const m = new Map();
@@ -11,12 +12,12 @@ function fakeBackend() {
   };
 }
 
-test("counts start at 0 and addCatch increments, capped at 10", () => {
+test("counts start at 0 and addCatch increments, capped at MAX_PER_SPECIES", () => {
   const b = fakeBackend();
   const s = makeStorage(b);
   assert.equal(s.getCount(3), 0);
-  for (let i = 0; i < 12; i++) s.addCatch(3);
-  assert.equal(makeStorage(b).getCount(3), 10); // gedeckelt
+  for (let i = 0; i < MAX_PER_SPECIES + 4; i++) s.addCatch(3);
+  assert.equal(makeStorage(b).getCount(3), MAX_PER_SPECIES); // gedeckelt
 });
 
 test("penaltyAll subtracts one from every counter (min 0) and clears won", () => {

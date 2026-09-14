@@ -6,16 +6,18 @@ import { makeWorld } from "./world.js";
 import { makeCatchScreen } from "./catchscreen.js";
 import { makeHouseScreen } from "./housescreen.js";
 
+const S = VIRTUAL_W;
 const canvas = document.getElementById("game");
 const ctx = canvas.getContext("2d");
 const storage = makeStorage(localStorage);
 const audio = makeAudio(storage);
 
-const SND = { x: 20, y: 20, w: 64, h: 64 };            // Lautsprecher (oben links)
-const NEW = { x: VIRTUAL_W - 84, y: 20, w: 64, h: 64 }; // Neues Spiel (oben rechts)
+const BSZ = 0.10 * S;
+const SND = { x: 0.03 * S, y: 0.03 * S, w: BSZ, h: BSZ };            // Lautsprecher oben links
+const NEW = { x: S - 0.03 * S - BSZ, y: 0.03 * S, w: BSZ, h: BSZ };  // Neues Spiel oben rechts
 
 let screen = "world";
-let confirmReset = false; // Bestätigungs-Overlay für Neues Spiel
+let confirmReset = false;
 
 const world = makeWorld({
   ctx, audio, storage,
@@ -26,8 +28,8 @@ const catchScreen = makeCatchScreen({
   ctx, audio,
   onResult: ({ id, caught }) => {
     if (id === BOSS_ID) {
-      if (caught) storage.setWon(true);       // gewonnen!
-      else storage.penaltyAll();              // verpasst -> -1 auf alle
+      if (caught) storage.setWon(true);
+      else storage.penaltyAll();
     } else if (caught) {
       storage.addCatch(id);
     }
@@ -40,18 +42,16 @@ const house = makeHouseScreen({
   onExit: () => { world.exitHouse(); screen = "world"; },
 });
 
-// Eingabe: Bildschirm- in virtuelle Koordinaten
 function toVirtual(ev) {
   const r = canvas.getBoundingClientRect();
   const px = (ev.touches ? ev.touches[0].clientX : ev.clientX) - r.left;
   const py = (ev.touches ? ev.touches[0].clientY : ev.clientY) - r.top;
-  return { x: px / r.width * VIRTUAL_W, y: py / r.height * VIRTUAL_H };
+  return { x: px / r.width * S, y: py / r.height * S };
 }
 const inRect = (x, y, r) => x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y + r.h;
 
-// Bestätigungs-Overlay: zwei große Buttons
-const YES = { x: VIRTUAL_W / 2 - 150, y: VIRTUAL_H / 2 - 40, w: 120, h: 120 };
-const NO = { x: VIRTUAL_W / 2 + 30, y: VIRTUAL_H / 2 - 40, w: 120, h: 120 };
+const YES = { x: S / 2 - 0.19 * S, y: S / 2 - 0.03 * S, w: 0.15 * S, h: 0.15 * S };
+const NO = { x: S / 2 + 0.04 * S, y: S / 2 - 0.03 * S, w: 0.15 * S, h: 0.15 * S };
 
 function handleTap(ev) {
   ev.preventDefault();
@@ -78,53 +78,54 @@ window.addEventListener("keydown", e => {
 window.addEventListener("keyup", e => { keys.delete(e.key); world.setKeys(keys); house.setKeys(keys); });
 
 function roundRect(r, fill, stroke) {
-  ctx.fillStyle = fill; ctx.strokeStyle = stroke; ctx.lineWidth = 4;
-  ctx.beginPath(); ctx.roundRect(r.x, r.y, r.w, r.h, 14); ctx.fill(); ctx.stroke();
+  ctx.fillStyle = fill; ctx.strokeStyle = stroke; ctx.lineWidth = 5;
+  ctx.beginPath(); ctx.roundRect(r.x, r.y, r.w, r.h, r.w * 0.22); ctx.fill(); ctx.stroke();
 }
 
 function drawSpeaker() {
   roundRect(SND, audio.isOn() ? "#2b8a3e" : "#888", "#1c1c1c");
+  const x = SND.x, y = SND.y, u = SND.w;
   ctx.fillStyle = "#fff";
   ctx.beginPath();
-  ctx.moveTo(SND.x + 18, SND.y + 26); ctx.lineTo(SND.x + 30, SND.y + 26);
-  ctx.lineTo(SND.x + 42, SND.y + 14); ctx.lineTo(SND.x + 42, SND.y + 50);
-  ctx.lineTo(SND.x + 30, SND.y + 38); ctx.lineTo(SND.x + 18, SND.y + 38); ctx.closePath(); ctx.fill();
+  ctx.moveTo(x + 0.28 * u, y + 0.40 * u); ctx.lineTo(x + 0.46 * u, y + 0.40 * u);
+  ctx.lineTo(x + 0.65 * u, y + 0.22 * u); ctx.lineTo(x + 0.65 * u, y + 0.78 * u);
+  ctx.lineTo(x + 0.46 * u, y + 0.60 * u); ctx.lineTo(x + 0.28 * u, y + 0.60 * u); ctx.closePath(); ctx.fill();
   if (!audio.isOn()) {
-    ctx.strokeStyle = "#c00"; ctx.lineWidth = 5;
-    ctx.beginPath(); ctx.moveTo(SND.x + 14, SND.y + 14); ctx.lineTo(SND.x + 52, SND.y + 52); ctx.stroke();
+    ctx.strokeStyle = "#c00"; ctx.lineWidth = u * 0.08;
+    ctx.beginPath(); ctx.moveTo(x + 0.22 * u, y + 0.22 * u); ctx.lineTo(x + 0.8 * u, y + 0.8 * u); ctx.stroke();
   }
+}
+
+function drawRestartIcon(cx, cy, r, lw) {
+  ctx.strokeStyle = "#fff"; ctx.lineWidth = lw; ctx.lineCap = "round";
+  ctx.beginPath(); ctx.arc(cx, cy, r, Math.PI * 0.5, Math.PI * 2.1); ctx.stroke();
+  ctx.fillStyle = "#fff";
+  ctx.beginPath();
+  ctx.moveTo(cx + r, cy - r * 0.75); ctx.lineTo(cx + r * 1.5, cy - r * 0.12); ctx.lineTo(cx + r * 0.5, cy - r * 0.12);
+  ctx.closePath(); ctx.fill();
 }
 
 function drawNewGame() {
   roundRect(NEW, "#c9a13b", "#1c1c1c");
-  // Kreispfeil-Symbol (Neustart)
-  const cx = NEW.x + 32, cy = NEW.y + 32;
-  ctx.strokeStyle = "#fff"; ctx.lineWidth = 6; ctx.lineCap = "round";
-  ctx.beginPath(); ctx.arc(cx, cy, 16, Math.PI * 0.5, Math.PI * 2.1); ctx.stroke();
-  ctx.fillStyle = "#fff";
-  ctx.beginPath(); // Pfeilspitze
-  ctx.moveTo(cx + 16, cy - 12); ctx.lineTo(cx + 24, cy - 2); ctx.lineTo(cx + 8, cy - 2); ctx.closePath(); ctx.fill();
+  drawRestartIcon(NEW.x + NEW.w / 2, NEW.y + NEW.h / 2, NEW.w * 0.26, NEW.w * 0.1);
 }
 
 function drawConfirm() {
-  ctx.fillStyle = "rgba(0,0,0,0.6)"; ctx.fillRect(0, 0, VIRTUAL_W, VIRTUAL_H);
-  // Neustart-Symbol groß oben
-  ctx.strokeStyle = "#fff"; ctx.lineWidth = 10; ctx.lineCap = "round";
-  const cx = VIRTUAL_W / 2, cy = VIRTUAL_H / 2 - 150;
-  ctx.beginPath(); ctx.arc(cx, cy, 44, Math.PI * 0.5, Math.PI * 2.1); ctx.stroke();
-  ctx.fillStyle = "#fff";
-  ctx.beginPath(); ctx.moveTo(cx + 44, cy - 34); ctx.lineTo(cx + 64, cy - 6); ctx.lineTo(cx + 24, cy - 6); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = "rgba(0,0,0,0.6)"; ctx.fillRect(0, 0, S, S);
+  drawRestartIcon(S / 2, S / 2 - 0.2 * S, 0.06 * S, 0.02 * S);
   // JA (grüner Haken)
   roundRect(YES, "#2b8a3e", "#0d3");
-  ctx.strokeStyle = "#fff"; ctx.lineWidth = 12; ctx.lineJoin = "round"; ctx.lineCap = "round";
+  ctx.strokeStyle = "#fff"; ctx.lineWidth = 0.02 * S; ctx.lineJoin = "round"; ctx.lineCap = "round";
   ctx.beginPath();
-  ctx.moveTo(YES.x + 28, YES.y + 62); ctx.lineTo(YES.x + 52, YES.y + 86); ctx.lineTo(YES.x + 96, YES.y + 34); ctx.stroke();
+  ctx.moveTo(YES.x + 0.22 * YES.w, YES.y + 0.52 * YES.h);
+  ctx.lineTo(YES.x + 0.42 * YES.w, YES.y + 0.72 * YES.h);
+  ctx.lineTo(YES.x + 0.8 * YES.w, YES.y + 0.28 * YES.h); ctx.stroke();
   // NEIN (rotes Kreuz)
   roundRect(NO, "#c0392b", "#900");
-  ctx.strokeStyle = "#fff"; ctx.lineWidth = 12;
+  ctx.strokeStyle = "#fff"; ctx.lineWidth = 0.02 * S;
   ctx.beginPath();
-  ctx.moveTo(NO.x + 32, NO.y + 34); ctx.lineTo(NO.x + 88, NO.y + 90);
-  ctx.moveTo(NO.x + 88, NO.y + 34); ctx.lineTo(NO.x + 32, NO.y + 90); ctx.stroke();
+  ctx.moveTo(NO.x + 0.28 * NO.w, NO.y + 0.28 * NO.h); ctx.lineTo(NO.x + 0.72 * NO.w, NO.y + 0.72 * NO.h);
+  ctx.moveTo(NO.x + 0.72 * NO.w, NO.y + 0.28 * NO.h); ctx.lineTo(NO.x + 0.28 * NO.w, NO.y + 0.72 * NO.h); ctx.stroke();
 }
 
 let last = performance.now();
@@ -135,7 +136,6 @@ function loop(now) {
     else if (screen === "catch") { catchScreen.update(dt); catchScreen.draw(); }
     else if (screen === "house") { house.update(dt); house.draw(); }
   } else {
-    // Standbild des aktuellen Screens, Overlay drüber
     if (screen === "world") world.draw();
     else if (screen === "catch") catchScreen.draw();
     else if (screen === "house") house.draw();
