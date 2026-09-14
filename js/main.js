@@ -17,13 +17,16 @@ let screen = "world";
 const world = makeWorld({
   ctx, audio,
   onEncounter: id => { catchScreen.start(id); screen = "catch"; },
-  onEnterHouse: () => { screen = "house"; },
+  onEnterHouse: () => { house.enter(); screen = "house"; },
 });
 const catchScreen = makeCatchScreen({
   ctx, audio,
   onResult: ({ id, caught }) => { if (caught) storage.addCaught(id); world.reset(); screen = "world"; },
 });
-const house = makeHouseScreen({ ctx, storage });
+const house = makeHouseScreen({
+  ctx, storage,
+  onExit: () => { world.exitHouse(); screen = "world"; },
+});
 
 // Eingabe: Bildschirm- in virtuelle Koordinaten
 function toVirtual(ev) {
@@ -40,17 +43,17 @@ function handleTap(ev) {
   if (inSpeaker(x, y)) { audio.toggle(); return; }
   if (screen === "world") world.onPointer(x, y);
   else if (screen === "catch") { if (catchScreen.ballHit(x, y)) catchScreen.onTap(); }
-  else if (screen === "house") { if (house.onTap(x, y) === "back") { world.exitHouse(); screen = "world"; } }
+  else if (screen === "house") house.onPointer(x, y);
 }
 canvas.addEventListener("mousedown", handleTap);
 canvas.addEventListener("touchstart", handleTap, { passive: false });
 
 const keys = new Set();
 window.addEventListener("keydown", e => {
-  keys.add(e.key); world.setKeys(keys);
+  keys.add(e.key); world.setKeys(keys); house.setKeys(keys);
   if (screen === "catch" && (e.key === " " || e.key === "Enter")) catchScreen.onTap();
 });
-window.addEventListener("keyup", e => { keys.delete(e.key); world.setKeys(keys); });
+window.addEventListener("keyup", e => { keys.delete(e.key); world.setKeys(keys); house.setKeys(keys); });
 
 function drawSpeaker() {
   ctx.fillStyle = audio.isOn() ? "#2b8a3e" : "#888";
@@ -71,7 +74,7 @@ function loop(now) {
   const dt = Math.min(0.05, (now - last) / 1000); last = now;
   if (screen === "world") { world.update(dt); world.draw(); }
   else if (screen === "catch") { catchScreen.update(dt); catchScreen.draw(); }
-  else if (screen === "house") { house.draw(); }
+  else if (screen === "house") { house.update(dt); house.draw(); }
   drawSpeaker();
   requestAnimationFrame(loop);
 }
