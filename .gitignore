@@ -1,2 +1,6 @@
 node_modules/
 .DS_Store
+
+# Versehentlich gespeicherte Webseite
+Sprites/Bilder generieren.html
+Sprites/Bilder generieren_files/
