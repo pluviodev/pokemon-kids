@@ -7,6 +7,7 @@ export function getSlots(counts, pool = POKEMON) {
     const count = counts[p.id] || 0;
     return {
       id: p.id,
+      name: p.name,
       sprite: p.sprite,
       rarity: p.rarity,
       count,

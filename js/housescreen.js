@@ -90,6 +90,13 @@ export function makeHouseScreen({ ctx, storage, onExit }) {
         if (s.maxed) { ctx.save(); ctx.shadowColor = "rgba(255,210,50,0.9)"; ctx.shadowBlur = 22; }
         ctx.drawImage(spr, p.x - h * ar / 2, p.y - h + 14, h * ar, h);
         if (s.maxed) ctx.restore();
+        // Name über dem Sprite (nur wenn schon gefangen), auf Spaltenbreite skaliert
+        let px = 14;
+        for (; px >= 9; px--) { ctx.font = "bold " + px + "px system-ui, sans-serif"; if (ctx.measureText(s.name).width <= 88) break; }
+        ctx.lineWidth = 3; ctx.strokeStyle = "rgba(0,0,0,0.8)";
+        ctx.strokeText(s.name, p.x, p.y - 82);
+        ctx.fillStyle = s.maxed ? "#ffd21e" : "#ffffff";
+        ctx.fillText(s.name, p.x, p.y - 82);
       } else {
         ctx.fillStyle = "rgba(20,12,6,0.5)";
         ctx.beginPath(); ctx.arc(p.x, p.y - 20, 24, 0, Math.PI * 2); ctx.fill();

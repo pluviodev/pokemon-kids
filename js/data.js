@@ -4,10 +4,16 @@ const RARITY_BY_ID = {
   8: "rare", 9: "rare", 10: "rare",
 };
 
+const NAME_BY_ID = {
+  1: "Blitzkarlitz", 2: "Bonkarlbon", 3: "Feuferkarl", 4: "Flatterkarla", 5: "Kacabarl",
+  6: "Karlfer", 7: "Karlklotz", 8: "Karlkutta", 9: "Krabbelkarlitto", 10: "Krakarle",
+};
+
 export const POKEMON = Object.keys(RARITY_BY_ID).map(k => {
   const id = Number(k);
   return {
     id,
+    name: NAME_BY_ID[id],
     sprite: `assets/pokemon/${String(id).padStart(2, "0")}.png`,
     rarity: RARITY_BY_ID[id],
   };

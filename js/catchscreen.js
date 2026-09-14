@@ -8,7 +8,7 @@ const BAR = { x: 386, y: 210, w: 46, h: 400 };
 const BALL = { x: 240, y: 706, r: 58 };
 const POKE = { x: 240, y: 330 };
 const THROW_TIME = 0.45;
-const BAND_PERIOD = 1.9; // Band-Bewegung beim Boss (anders getaktet als Marker)
+const BAND_PERIOD = 2.3; // Band-Bewegung beim Boss – bewusst anderes Tempo als der Marker (1.4)
 
 export function makeCatchScreen({ ctx, audio, onResult }) {
   let id = 1, isBoss = false;
