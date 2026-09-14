@@ -120,22 +120,33 @@ lukas = fit(cutout_white(Image.open(os.path.join(SRC, "lukas.png"))), 360)
 lukas.save(os.path.join(OUT, "pokemon", "11.png"))
 print("lukas", lukas.size)
 
-# Player-Spritesheet: 2 Spalten x 4 Reihen
+# Player-Spritesheet: 2 Spalten x 4 Reihen.
+# Jeden Frame EINZELN freischneiden und dann zentriert + fußbündig auf eine
+# einheitliche Leinwand setzen -> beim Frame-Wechsel springt die Figur nicht.
 sheet = Image.open(os.path.join(SRC, "ChatGPT Image 14. Sept. 2026, 14_04_45.png")).convert("RGBA")
 cols, rows = 2, 4
 cw, ch = sheet.width // cols, sheet.height // rows
-cells = []
+import numpy as np
+trimmed, cxs = [], []
 for r in range(rows):
     for c in range(cols):
-        cells.append(sheet.crop((c * cw, r * ch, (c + 1) * cw, (r + 1) * ch)))
-# gemeinsame Trim-Box über alle Zellen (Füße/Größe bleiben ausgerichtet)
-boxes = [cell.getbbox() for cell in cells if cell.getbbox()]
-ux0 = min(b[0] for b in boxes); uy0 = min(b[1] for b in boxes)
-ux1 = max(b[2] for b in boxes); uy1 = max(b[3] for b in boxes)
-scale = 200.0 / (uy1 - uy0)  # Zielhöhe ~200px
-for idx, cell in enumerate(cells):
+        cell = sheet.crop((c * cw, r * ch, (c + 1) * cw, (r + 1) * ch))
+        bb = cell.getbbox()
+        fr = cell.crop(bb) if bb else cell
+        a = np.array(fr.split()[3])
+        ys, xs = np.nonzero(a > 20)
+        cxs.append(float(xs.mean()))  # horizontaler Alpha-Schwerpunkt (Körpermitte)
+        trimmed.append(fr)
+maxH = max(fr.height for fr in trimmed)
+# Leinwand breit genug, damit jede am Schwerpunkt zentrierte Figur reinpasst
+half = max(max(cx, fr.width - cx) for fr, cx in zip(trimmed, cxs))
+canvasW = int(2 * half) + 8
+scale = 200.0 / maxH
+for idx, (fr, cx) in enumerate(zip(trimmed, cxs)):
     r, c = idx // cols, idx % cols
-    fr = cell.crop((ux0, uy0, ux1, uy1))
-    fr = fr.resize((int(fr.width * scale), int(fr.height * scale)), Image.LANCZOS)
-    fr.save(os.path.join(OUT, "player", f"{r}_{c}.png"))
-print("player frames", cols * rows, "size", (int((ux1-ux0)*scale), int((uy1-uy0)*scale)))
+    canvas = Image.new("RGBA", (canvasW, maxH), (0, 0, 0, 0))
+    px = int(round(canvasW / 2 - cx))       # Körpermitte -> Leinwandmitte
+    canvas.paste(fr, (px, maxH - fr.height), fr)  # Füße unten bündig
+    canvas = canvas.resize((int(canvasW * scale), 200), Image.LANCZOS)
+    canvas.save(os.path.join(OUT, "player", f"{r}_{c}.png"))
+print("player frames", cols * rows, "canvas", (int(canvasW * scale), 200))
