@@ -1,42 +1,55 @@
 import { VIRTUAL_W, VIRTUAL_H } from "./config.js";
 import { getSlots } from "./collection.js";
-import { getSprite } from "./sprites.js";
+import { getSprite, getImg } from "./sprites.js";
 
-const BACK = { x: 20, y: 20, w: 70, h: 70 };
+const BACK = { x: 18, y: 18, w: 72, h: 72 };
+const OFY = (VIRTUAL_H - VIRTUAL_W) / 2; // Haus-Bild quadratisch, vertikal zentriert
+// Podest-Positionen (Bruchteile des Haus-Bilds), gemessen aus house.png
+const XS = [0.171, 0.335, 0.498, 0.663, 0.827];
+const ROW_Y = [0.34, 0.60];
 
 export function makeHouseScreen({ ctx, storage }) {
+  function pedestal(i) {
+    const fx = XS[i % 5];
+    const fy = ROW_Y[Math.floor(i / 5)];
+    return { x: fx * VIRTUAL_W, y: OFY + fy * VIRTUAL_W };
+  }
+
   function draw() {
-    ctx.fillStyle = "#5b3a24"; ctx.fillRect(0, 0, VIRTUAL_W, VIRTUAL_H); // Innenraum
-    ctx.fillStyle = "#7a5233"; ctx.fillRect(0, 120, VIRTUAL_W, VIRTUAL_H - 120);
-    // Zurück-Pfeil (gezeichnet)
-    ctx.fillStyle = "#ffcf5a"; ctx.fillRect(BACK.x, BACK.y, BACK.w, BACK.h);
-    ctx.strokeStyle = "#5b3a24"; ctx.lineWidth = 8; ctx.lineCap = "round";
-    ctx.beginPath();
-    ctx.moveTo(BACK.x + 48, BACK.y + 20); ctx.lineTo(BACK.x + 22, BACK.y + 35);
-    ctx.lineTo(BACK.x + 48, BACK.y + 50); ctx.stroke();
-    // 10 Slots, 2 Spalten x 5 Reihen
+    ctx.fillStyle = "#4a3420"; ctx.fillRect(0, 0, VIRTUAL_W, VIRTUAL_H); // Letterbox
+    const house = getImg("house");
+    if (house) ctx.drawImage(house, 0, OFY, VIRTUAL_W, VIRTUAL_W);
+
     const slots = getSlots(storage.loadCaught());
-    const cols = 2, cellW = 200, cellH = 120, ox = 40, oy = 150;
     slots.forEach((s, i) => {
-      const cx = ox + (i % cols) * (cellW + 10);
-      const cy = oy + Math.floor(i / cols) * (cellH + 5);
-      ctx.fillStyle = "#3f2817"; ctx.fillRect(cx, cy, cellW, cellH); // Regalfach
+      const p = pedestal(i);
       if (s.caught) {
-        ctx.drawImage(getSprite(s.id), cx + cellW / 2 - 48, cy + 12, 96, 96);
+        const spr = getSprite(s.id);
+        const h = 96, ar = spr.width && spr.height ? spr.width / spr.height : 1;
+        ctx.drawImage(spr, p.x - h * ar / 2, p.y - h + 18, h * ar, h);
       } else {
-        ctx.fillStyle = "#2a1a0f";
-        ctx.beginPath(); ctx.arc(cx + cellW / 2, cy + 60, 40, 0, Math.PI * 2); ctx.fill();
-        // gezeichnetes "?" (Kurve + Punkt), kein Textzeichen
-        ctx.strokeStyle = "#6b5238"; ctx.lineWidth = 8;
+        // Schatten-Silhouette + gezeichnetes "?" (kein Textzeichen)
+        ctx.fillStyle = "rgba(20,12,6,0.55)";
+        ctx.beginPath(); ctx.arc(p.x, p.y - 20, 30, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = "#d8c49a"; ctx.lineWidth = 6; ctx.lineCap = "round";
         ctx.beginPath();
-        ctx.arc(cx + cellW / 2, cy + 48, 14, Math.PI * 0.8, Math.PI * 2.1);
+        ctx.arc(p.x, p.y - 30, 11, Math.PI * 0.85, Math.PI * 2.15);
         ctx.stroke();
-        ctx.beginPath(); ctx.moveTo(cx + cellW / 2, cy + 62); ctx.lineTo(cx + cellW / 2, cy + 74); ctx.stroke();
-        ctx.fillStyle = "#6b5238";
-        ctx.beginPath(); ctx.arc(cx + cellW / 2, cy + 86, 5, 0, Math.PI * 2); ctx.fill();
+        ctx.beginPath(); ctx.moveTo(p.x, p.y - 19); ctx.lineTo(p.x, p.y - 8); ctx.stroke();
+        ctx.fillStyle = "#d8c49a";
+        ctx.beginPath(); ctx.arc(p.x, p.y, 4, 0, Math.PI * 2); ctx.fill();
       }
     });
+
+    // Zurück-Pfeil (gezeichnet)
+    ctx.fillStyle = "#ffcf5a"; ctx.strokeStyle = "#5b3a24"; ctx.lineWidth = 4;
+    ctx.beginPath(); ctx.roundRect(BACK.x, BACK.y, BACK.w, BACK.h, 14); ctx.fill(); ctx.stroke();
+    ctx.strokeStyle = "#5b3a24"; ctx.lineWidth = 9; ctx.lineCap = "round"; ctx.lineJoin = "round";
+    ctx.beginPath();
+    ctx.moveTo(BACK.x + 48, BACK.y + 20); ctx.lineTo(BACK.x + 24, BACK.y + 36);
+    ctx.lineTo(BACK.x + 48, BACK.y + 52); ctx.stroke();
   }
+
   function onTap(x, y) {
     if (x >= BACK.x && x <= BACK.x + BACK.w && y >= BACK.y && y <= BACK.y + BACK.h) return "back";
     return null;

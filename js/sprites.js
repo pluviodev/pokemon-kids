@@ -20,7 +20,6 @@ function makePlaceholder(id) {
   g.fillStyle = PLACEHOLDER_COLORS[(id - 1) % 10];
   g.beginPath(); g.arc(48, 48, 40, 0, Math.PI * 2); g.fill();
   g.fillStyle = "rgba(255,255,255,0.85)";
-  // id-abhängiges Punktmuster statt Zahl (text-frei)
   for (let i = 0; i < id; i++) {
     const a = (i / id) * Math.PI * 2;
     g.beginPath();
@@ -30,19 +29,52 @@ function makePlaceholder(id) {
   return c;
 }
 
-const cache = new Map();
+const images = new Map();
 
-export function loadSprites(onReady) {
-  let pending = POKEMON.length;
+// Feste Bild-Assets (Hintergründe, Ball, Spieler-Frames)
+const MANIFEST = [
+  ["world", "assets/world.png"],
+  ["house", "assets/house.png"],
+  ["catchbg", "assets/catchbg.png"],
+  ["ball", "assets/ball.png"],
+  ["p_up_0", "assets/player/0_0.png"],
+  ["p_up_1", "assets/player/0_1.png"],
+  ["p_left_0", "assets/player/1_0.png"],
+  ["p_left_1", "assets/player/1_1.png"],
+  ["p_down_0", "assets/player/3_0.png"],
+  ["p_down_1", "assets/player/3_1.png"],
+];
+
+export function loadAssets(onReady) {
+  const entries = [
+    ...MANIFEST,
+    ...POKEMON.map(p => ["pk" + p.id, p.sprite]),
+  ];
+  let pending = entries.length;
   const done = () => { if (--pending === 0 && onReady) onReady(); };
-  for (const p of POKEMON) {
+  for (const [key, src] of entries) {
     const img = new Image();
-    img.onload = () => { cache.set(p.id, img); done(); };
-    img.onerror = () => { cache.set(p.id, makePlaceholder(p.id)); done(); };
-    img.src = p.sprite;
+    img.onload = () => { images.set(key, img); done(); };
+    img.onerror = () => {
+      // Pokémon-Fallback = gezeichneter Platzhalter; sonstige Assets ohne Bild
+      if (key.startsWith("pk")) images.set(key, makePlaceholder(Number(key.slice(2))));
+      done();
+    };
+    img.src = src;
   }
 }
 
+export function getImg(key) {
+  return images.get(key) || null;
+}
+
 export function getSprite(id) {
-  return cache.get(id) || makePlaceholder(id);
+  return images.get("pk" + id) || makePlaceholder(id);
+}
+
+// Spieler-Frame: dir in {up,down,left,right}, step 0/1. Rechts = gespiegeltes Links.
+export function playerFrame(dir, step) {
+  if (dir === "right") return { img: getImg("p_left_" + step), flip: true };
+  const key = "p_" + (dir === "up" ? "up" : dir === "left" ? "left" : "down") + "_" + step;
+  return { img: getImg(key), flip: false };
 }

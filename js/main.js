@@ -1,7 +1,7 @@
 import { VIRTUAL_W, VIRTUAL_H } from "./config.js";
 import { makeStorage } from "./storage.js";
 import { makeAudio } from "./audio.js";
-import { loadSprites } from "./sprites.js";
+import { loadAssets } from "./sprites.js";
 import { makeWorld } from "./world.js";
 import { makeCatchScreen } from "./catchscreen.js";
 import { makeHouseScreen } from "./housescreen.js";
@@ -76,4 +76,4 @@ function loop(now) {
   requestAnimationFrame(loop);
 }
 
-loadSprites(() => { last = performance.now(); requestAnimationFrame(loop); });
+loadAssets(() => { last = performance.now(); requestAnimationFrame(loop); });
