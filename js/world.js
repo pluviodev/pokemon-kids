@@ -94,35 +94,32 @@ export function makeWorld({ ctx, audio, storage, onEncounter, onEnterHouse }) {
     const world = getImg("world");
     if (world) ctx.drawImage(world, 0, 0, S, S); // ganzes Bild
 
+    // Grasbüschel-Sprite mit Wackeln + umherfliegenden gelben Punkten
+    function drawGrass(s, h, dotCount) {
+      const spr = getImg("grass");
+      const sway = Math.sin(t * 3 + s.phase) * 0.09; // Neigung hin/her
+      if (spr) {
+        const ar = spr.width / spr.height, w = h * ar;
+        ctx.save();
+        ctx.translate(s.x, s.y);
+        ctx.rotate(sway);
+        ctx.drawImage(spr, -w / 2, -h, w, h);
+        ctx.restore();
+      }
+      for (let i = 0; i < dotCount; i++) {
+        const a = t * 2.2 + (i / dotCount) * Math.PI * 2 + s.phase;
+        const dx = Math.cos(a) * h * 0.95;
+        const dy = -h * 0.55 + Math.sin(a * 1.4) * h * 0.5;
+        ctx.save();
+        ctx.globalAlpha = 0.6 + 0.4 * Math.sin(t * 6 + i);
+        ctx.fillStyle = "#ffe64d";
+        ctx.shadowColor = "rgba(255,230,80,0.9)"; ctx.shadowBlur = 12;
+        ctx.beginPath(); ctx.arc(s.x + dx, s.y + dy, h * 0.055, 0, Math.PI * 2); ctx.fill();
+        ctx.restore();
+      }
+    }
     for (const s of spawns) {
-      if (s.boss) {
-        // doppelt großes, wackelndes Grasbüschel (keine kleinen mehr)
-        const sway = Math.sin(t * 10 + s.phase) * 24;
-        ctx.strokeStyle = "#2f7d22"; ctx.lineWidth = 24; ctx.lineCap = "round";
-        for (let i = -2; i <= 2; i++) {
-          ctx.beginPath();
-          ctx.moveTo(s.x + i * 28, s.y + 64);
-          ctx.lineTo(s.x + i * 28 + sway, s.y - 64);
-          ctx.stroke();
-        }
-        ctx.fillStyle = "rgba(255,255,150," + (0.4 + 0.6 * Math.abs(Math.sin(t * 8 + s.phase))) + ")";
-        for (const sp of [[54, -66], [-50, -26], [70, 12], [0, -80]]) {
-          ctx.beginPath(); ctx.arc(s.x + sp[0], s.y + sp[1], 10, 0, Math.PI * 2); ctx.fill();
-        }
-        continue;
-      }
-      const w = Math.sin(t * 12 + s.phase) * 12;
-      ctx.strokeStyle = "#2f7d22"; ctx.lineWidth = 12; ctx.lineCap = "round";
-      for (let i = -1; i <= 1; i++) {
-        ctx.beginPath();
-        ctx.moveTo(s.x + i * 22, s.y + 34);
-        ctx.lineTo(s.x + i * 22 + w, s.y - 26);
-        ctx.stroke();
-      }
-      ctx.fillStyle = "rgba(255,255,150," + (0.4 + 0.6 * Math.abs(Math.sin(t * 8 + s.phase))) + ")";
-      for (const sp of [[30, -34], [-28, -14], [38, 8]]) {
-        ctx.beginPath(); ctx.arc(s.x + sp[0], s.y + sp[1], 6, 0, Math.PI * 2); ctx.fill();
-      }
+      drawGrass(s, s.boss ? 0.26 * S : 0.13 * S, s.boss ? 9 : 5);
     }
 
     const step = moving ? (Math.floor(stepT / 0.22) % 2) : 0;

@@ -85,6 +85,11 @@ print("ball", ball.size)
 pokal = fit(cutout_key(Image.open(os.path.join(SRC, "Pokal.png"))), 520)
 pokal.save(os.path.join(OUT, "pokal.png"))
 print("pokal", pokal.size)
+
+# Grasbüschel (rosa Hintergrund) freistellen
+grass = fit(cutout_flood(Image.open(os.path.join(SRC, "Gras.png")), tol=46), 240)
+grass.save(os.path.join(OUT, "grass.png"))
+print("grass", grass.size)
 print("ball", ball.size)
 
 # Lukas (11. Pokémon): weißen Hintergrund per Flood-Fill freistellen

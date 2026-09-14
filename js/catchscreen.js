@@ -1,4 +1,4 @@
-import { VIRTUAL_W, VIRTUAL_H, POWERBAR_PERIOD, BOSS_ID, BOSS_BAND } from "./config.js";
+import { VIRTUAL_W, VIRTUAL_H, POWERBAR_PERIOD, PERIOD_BY_RARITY, BOSS_ID, BOSS_BAND } from "./config.js";
 import { markerPos } from "./powerbar.js";
 import { bandSize, makeBand, randomCenter, inBand } from "./catch.js";
 import { getImg, getSprite, wobbleOffset } from "./sprites.js";
@@ -16,6 +16,7 @@ export function makeCatchScreen({ ctx, audio, onResult }) {
   let phase = "aim";       // aim | throw | success | fail
   let t = 0, resultT = 0, throwT = 0;
   let markerT = 0, bandT = 0, pos = 0;
+  let markerPeriod = POWERBAR_PERIOD;
   let bandSz = 0.16, band = { from: 0.4, to: 0.6 };
   let caught = false;
   let particles = [];
@@ -27,6 +28,7 @@ export function makeCatchScreen({ ctx, audio, onResult }) {
     name = isBoss ? "Lukas" : (entry.name || "");
     const rarity = entry.rarity || "rare";
     bandSz = isBoss ? BOSS_BAND : bandSize(rarity);
+    markerPeriod = isBoss ? POWERBAR_PERIOD : (PERIOD_BY_RARITY[rarity] || POWERBAR_PERIOD);
     band = makeBand(randomCenter(bandSz), bandSz);
     phase = "aim"; t = 0; markerT = 0; bandT = 0; pos = 0;
     caught = false; particles = [];
@@ -54,7 +56,7 @@ export function makeCatchScreen({ ctx, audio, onResult }) {
   function onTap() {
     if (phase !== "aim") return;
     audio.play("throw");
-    pos = markerPos(markerT, POWERBAR_PERIOD);
+    pos = markerPos(markerT, markerPeriod);
     caught = inBand(pos, currentBand());
     phase = "throw"; throwT = 0;
   }
@@ -127,7 +129,7 @@ export function makeCatchScreen({ ctx, audio, onResult }) {
       ctx.fillStyle = "#2fbf3a"; ctx.fillRect(BAR.x, zoneTopY, BAR.w, zoneH);
       ctx.strokeStyle = "#0a5"; ctx.lineWidth = 4; ctx.strokeRect(BAR.x, zoneTopY, BAR.w, zoneH);
       ctx.strokeStyle = "#333"; ctx.lineWidth = 4; ctx.strokeRect(BAR.x, BAR.y, BAR.w, BAR.h);
-      const mp = markerPos(markerT, POWERBAR_PERIOD);
+      const mp = markerPos(markerT, markerPeriod);
       const my = BAR.y + (1 - mp) * BAR.h;
       ctx.fillStyle = "#111"; ctx.fillRect(BAR.x - 18, my - 9, BAR.w + 36, 18);
     }
