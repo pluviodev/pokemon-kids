@@ -7,7 +7,9 @@ const S = VIRTUAL_W; // quadratisch, Haus-Bild füllt das ganze Feld
 const XS = [0.171, 0.335, 0.498, 0.663, 0.827];
 const ROW_Y = [0.34, 0.60];
 const BOUNDS = { minX: 0.08 * S, minY: 0.27 * S, maxX: 0.92 * S, maxY: 0.95 * S };
-const EXIT = { x: 0.40 * S, y: 0.90 * S, w: 0.20 * S, h: 0.09 * S };
+// Großzügiger Ausgangs-Streifen unten (kindgerecht: viel Platz zum Antippen).
+// Abstand zur unteren Podest-Reihe (y 0.60) bleibt, damit man nicht versehentlich rausläuft.
+const EXIT = { x: 0.12 * S, y: 0.80 * S, w: 0.76 * S, h: 0.19 * S };
 const PLAYER_H = 0.15 * S;
 const SPR_H = 0.15 * S;
 
