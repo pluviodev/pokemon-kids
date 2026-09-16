@@ -2,6 +2,7 @@ import { VIRTUAL_W, VIRTUAL_H, PLAYER_SPEED, MAX_PER_SPECIES } from "./config.js
 import { getSlots } from "./collection.js";
 import { getSprite, getGoldSprite, getImg, playerFrame } from "./sprites.js";
 import { stepPlayer } from "./movement.js";
+import { levelData, pokemonForLevel } from "./levels.js";
 
 const S = VIRTUAL_W; // quadratisch, Haus-Bild füllt das ganze Feld
 const XS = [0.171, 0.335, 0.498, 0.663, 0.827];
@@ -33,8 +34,10 @@ export function makeHouseScreen({ ctx, storage, onExit }) {
   let dir = "up";
   let stepT = 0, moving = false, t = 0;
   let wasInExit = true;
+  let lv = levelData(storage.getLevel());
 
   function enter() {
+    lv = levelData(storage.getLevel());
     player = { x: 0.5 * S, y: 0.92 * S }; target = { ...player };
     dir = "up"; moving = false; wasInExit = true;
   }
@@ -74,10 +77,10 @@ export function makeHouseScreen({ ctx, storage, onExit }) {
 
   function draw() {
     ctx.fillStyle = "#4a3420"; ctx.fillRect(0, 0, S, S);
-    const house = getImg("house");
+    const house = getImg(lv.house);
     if (house) ctx.drawImage(house, 0, 0, S, S);
 
-    const slots = getSlots(storage.loadCounts());
+    const slots = getSlots(storage.loadCounts(), pokemonForLevel(lv.n));
     ctx.textAlign = "center"; ctx.textBaseline = "middle";
     slots.forEach((s, i) => {
       const p = pedestalPos(i);
