@@ -41,18 +41,21 @@ function blocked(x, y) {
 }
 
 export function makeHouseScreen({ ctx, storage, onExit }) {
-  let player = { x: 0.5 * S, y: 0.92 * S };
-  let target = { x: 0.5 * S, y: 0.92 * S };
+  // Start knapp unter der unteren Podestreihe, ÜBER der Ausgangs-Zone (y 0.80),
+  // damit „direkt runter laufen" immer rausführt.
+  const START_Y = 0.72 * S;
+  let player = { x: 0.5 * S, y: START_Y };
+  let target = { x: 0.5 * S, y: START_Y };
   let keys = new Set();
   let dir = "up";
   let stepT = 0, moving = false, t = 0;
-  let wasInExit = true;
+  let wasInExit = false;
   let lv = levelData(storage.getLevel());
 
   function enter() {
     lv = levelData(storage.getLevel());
-    player = { x: 0.5 * S, y: 0.92 * S }; target = { ...player };
-    dir = "up"; moving = false; wasInExit = true;
+    player = { x: 0.5 * S, y: START_Y }; target = { ...player };
+    dir = "up"; moving = false; wasInExit = false;
   }
 
   function keyTarget() {
