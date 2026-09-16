@@ -77,13 +77,20 @@ fb2.save(os.path.join(OUT, "catchbg2.png"))
 print("catchbg2", fb2.size)
 
 # Flood-Fill von den Ecken (entfernt nur den ZUSAMMENHÄNGENDEN Außen-Hintergrund;
-# eingeschlossene helle Flächen bleiben -> gut für den Ball auf Weiß)
-def cutout_flood(im, tol=40):
+# eingeschlossene helle Flächen bleiben -> gut für den Ball auf Weiß).
+# border=True: vom GESAMTEN Rand starten -> erwischt auch Hintergrund-Taschen, die
+# von einer Ecke abgeschnitten sind (z.B. Lena, deren Jacke bis in die Ecke reicht).
+def cutout_flood(im, tol=40, border=False):
     im = im.convert("RGBA"); px = im.load(); w, h = im.size
     from collections import deque
     seen = [[False] * w for _ in range(h)]; q = deque()
     bg = px[0, 0]
-    for cx, cy in [(0, 0), (w-1, 0), (0, h-1), (w-1, h-1)]:
+    if border:
+        seeds = [(x, y) for x in range(w) for y in (0, h-1)] + \
+                [(x, y) for y in range(h) for x in (0, w-1)]
+    else:
+        seeds = [(0, 0), (w-1, 0), (0, h-1), (w-1, h-1)]
+    for cx, cy in seeds:
         if not seen[cy][cx]: q.append((cx, cy)); seen[cy][cx] = True
     def close(a, b): return abs(a[0]-b[0]) < tol and abs(a[1]-b[1]) < tol and abs(a[2]-b[2]) < tol
     while q:
@@ -160,8 +167,10 @@ lukas = fit(cutout_white(Image.open(os.path.join(SRC, "lukas.png"))), 360)
 lukas.save(os.path.join(OUT, "pokemon", "11.png"))
 print("lukas", lukas.size)
 
-# Lena (Level-2-Boss, id 12): cremefarbenen Hintergrund per Ecken-Flood-Fill freistellen
-lena = fit(cutout_flood(Image.open(os.path.join(SRC, "lena.png")), tol=50), 360)
+# Lena (Level-2-Boss, id 12): cremefarbenen Hintergrund freistellen. border=True,
+# weil ihre Jacke bis in die untere Ecke reicht und die Creme-Tasche links sonst
+# abgeschnitten (nicht wegge-floodet) bliebe.
+lena = fit(cutout_flood(Image.open(os.path.join(SRC, "lena.png")), tol=50, border=True), 360)
 lena.save(os.path.join(OUT, "pokemon", "12.png"))
 print("lena", lena.size)
 
