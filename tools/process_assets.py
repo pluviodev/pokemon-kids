@@ -34,6 +34,25 @@ for i, name in enumerate(CREATURES, start=1):
     im.save(os.path.join(OUT, "pokemon", f"{i:02d}.png"))
     print("pokemon", i, name, im.size)
 
+# Level-2-Kreaturen -> id 21..30 (Reihenfolge = rarity-Zuordnung in levels.js)
+CREATURES2 = [
+    "Kieselkarlo, der Quarzhorn-Buddler",
+    "Karatekarlo, der Rotpanda-Känguru-Kämpfer",
+    "Blütenkarl, der Blütenschirmträger",
+    "Frostkarl, der Eis-Knirps",
+    "Spukarl, der schüchterne Kerzengeist",
+    "Toxikarla mit leuchtendem Giftnebel",
+    "Mentakarl, der schwebende Kristallseher",
+    "Drakarl, der kleine Sternendrache",
+    "Glitzerkarla, das schwebende Feenreh",
+    "Düsterkarl, der Schattenmasken-Schleicher",
+]
+for i, name in enumerate(CREATURES2, start=21):
+    im = Image.open(os.path.join(SRC, name + ".png")).convert("RGBA")
+    im = fit(trim(im), 320)
+    im.save(os.path.join(OUT, "pokemon", f"{i:02d}.png"))
+    print("pokemon L2", i, name, im.size)
+
 # Hintergründe
 for src_name, out_name, box in [("Draußen", "world", 720), ("Drinnen", "house", 720)]:
     im = Image.open(os.path.join(SRC, src_name + ".png")).convert("RGBA")
@@ -46,6 +65,19 @@ fb = Image.open(os.path.join(SRC, "Fang Background.png")).convert("RGBA")
 fb = fit(fb, 900)
 fb.save(os.path.join(OUT, "catchbg.png"))
 print("catchbg", fb.size)
+
+# Level-2-Hintergründe
+for src_name, out_name, box in [("Draußen Level 2", "world2", 720),
+                                ("Drinnen Level 2", "house2", 720)]:
+    im = Image.open(os.path.join(SRC, src_name + ".png")).convert("RGBA")
+    im = fit(im, box)
+    im.save(os.path.join(OUT, out_name + ".png"))
+    print("bg L2", out_name, im.size)
+
+fb2 = Image.open(os.path.join(SRC, "Fang Background Level2.png")).convert("RGBA")
+fb2 = fit(fb2, 900)
+fb2.save(os.path.join(OUT, "catchbg2.png"))
+print("catchbg2", fb2.size)
 
 # Flood-Fill von den Ecken (entfernt nur den ZUSAMMENHÄNGENDEN Außen-Hintergrund;
 # eingeschlossene helle Flächen bleiben -> gut für den Ball auf Weiß)
@@ -92,6 +124,19 @@ grass.save(os.path.join(OUT, "grass.png"))
 print("grass", grass.size)
 print("ball", ball.size)
 
+# Dunkleres Grasbüschel für Level 2 (RGB * 0.7, Alpha bleibt)
+from PIL import ImageEnhance
+g2 = Image.open(os.path.join(OUT, "grass.png")).convert("RGBA")
+gr_, gg_, gb_, ga_ = g2.split()
+g2 = Image.merge("RGBA", (
+    ImageEnhance.Brightness(gr_).enhance(0.7),
+    ImageEnhance.Brightness(gg_).enhance(0.7),
+    ImageEnhance.Brightness(gb_).enhance(0.7),
+    ga_,
+))
+g2.save(os.path.join(OUT, "grass2.png"))
+print("grass2", g2.size)
+
 # Lukas (11. Pokémon): weißen Hintergrund per Flood-Fill freistellen
 def cutout_white(im, tol=36):
     im = im.convert("RGBA")
@@ -117,6 +162,11 @@ def cutout_white(im, tol=36):
 lukas = fit(cutout_white(Image.open(os.path.join(SRC, "lukas.png"))), 360)
 lukas.save(os.path.join(OUT, "pokemon", "11.png"))
 print("lukas", lukas.size)
+
+# Lena (Level-2-Boss, id 12): cremefarbenen Hintergrund per Ecken-Flood-Fill freistellen
+lena = fit(cutout_flood(Image.open(os.path.join(SRC, "lena.png")), tol=50), 360)
+lena.save(os.path.join(OUT, "pokemon", "12.png"))
+print("lena", lena.size)
 
 # Player-Spritesheet: 2 Spalten x 4 Reihen.
 # Jeden Frame EINZELN freischneiden und dann zentriert + fußbündig auf eine
