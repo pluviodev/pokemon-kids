@@ -1,11 +1,14 @@
 import { pokemonForLevel, MAX_LEVEL } from "./levels.js";
 import { MAX_PER_SPECIES } from "./config.js";
+import { collectBerry as toyCollect } from "./toys.js";
 
 const COUNTS_KEY = "pk_counts";
 const SOUND_KEY = "pk_sound";
 const WON_KEY = "pk_won";
 const LEVEL_KEY = "pk_level";
 const COMPANION_KEY = "pk_companion";
+const BERRIES_KEY = "pk_berries";
+const TOYS_KEY = "pk_toys";
 
 export function makeStorage(backend = localStorage) {
   function getLevel() {
@@ -25,6 +28,16 @@ export function makeStorage(backend = localStorage) {
   function toggleCompanion(id) {
     const cur = parseInt(backend.getItem(COMPANION_KEY), 10);
     setCompanion(cur === id ? null : id);
+  }
+
+  function getBerries() { const n = parseInt(backend.getItem(BERRIES_KEY), 10); return Number.isInteger(n) && n > 0 ? n : 0; }
+  function getToysUnlocked() { const n = parseInt(backend.getItem(TOYS_KEY), 10); return Number.isInteger(n) && n > 0 ? n : 0; }
+  function isPlayUnlocked() { return getToysUnlocked() >= 1; }
+  function collectBerry() {
+    const r = toyCollect(getBerries(), getToysUnlocked());
+    backend.setItem(BERRIES_KEY, String(r.berries));
+    backend.setItem(TOYS_KEY, String(r.unlocked));
+    return r.unlockedToy;
   }
 
   function loadCounts() {
@@ -68,6 +81,8 @@ export function makeStorage(backend = localStorage) {
     setLevel(1);
     setWon(false);
     setCompanion(null);
+    backend.setItem(BERRIES_KEY, "0");
+    backend.setItem(TOYS_KEY, "0");
   }
   function advanceLevel() {
     setLevel(getLevel() + 1);
@@ -79,5 +94,6 @@ export function makeStorage(backend = localStorage) {
   function setSound(on) { backend.setItem(SOUND_KEY, on ? "1" : "0"); }
 
   return { loadCounts, getCount, addCatch, penaltyAll, isWon, setWon, reset,
-           getLevel, setLevel, advanceLevel, getCompanion, toggleCompanion, isSoundOn, setSound };
+           getLevel, setLevel, advanceLevel, getCompanion, setCompanion, toggleCompanion,
+           getBerries, getToysUnlocked, isPlayUnlocked, collectBerry, isSoundOn, setSound };
 }

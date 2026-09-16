@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import { makeStorage } from "../js/storage.js";
 import { MAX_PER_SPECIES } from "../js/config.js";
 import { pokemonForLevel } from "../js/levels.js";
+import { TOYS } from "../js/toys.js";
 
 function fakeBackend() {
   const m = new Map();
@@ -132,4 +133,33 @@ test("advanceLevel und reset leeren den Begleiter", () => {
   s2.setLevel(1); s2.addCatch(2); s2.toggleCompanion(2);
   s2.reset();
   assert.equal(makeStorage(b).getCompanion(), null);
+});
+
+test("Beeren zählen hoch und schalten bei 20 ein Spiel frei", () => {
+  const b = fakeBackend();
+  const s = makeStorage(b);
+  assert.equal(s.getBerries(), 0);
+  assert.equal(s.isPlayUnlocked(), false);
+  let unlocked = null;
+  for (let i = 0; i < 20; i++) unlocked = s.collectBerry();
+  assert.deepEqual(unlocked, TOYS[0]);          // 20. Beere schaltet frei
+  const s2 = makeStorage(b);
+  assert.equal(s2.getToysUnlocked(), 1);
+  assert.equal(s2.getBerries(), 0);
+  assert.equal(s2.isPlayUnlocked(), true);
+});
+
+test("reset leert Beeren + Spiele, advanceLevel behält sie", () => {
+  const b = fakeBackend();
+  const s = makeStorage(b);
+  for (let i = 0; i < 20; i++) s.collectBerry();  // 1 Spiel frei
+  s.collectBerry(); s.collectBerry();             // 2 Beeren
+  s.advanceLevel();
+  const s2 = makeStorage(b);
+  assert.equal(s2.getToysUnlocked(), 1);          // bleibt über Level
+  assert.equal(s2.getBerries(), 2);
+  s2.reset();
+  const s3 = makeStorage(b);
+  assert.equal(s3.getToysUnlocked(), 0);
+  assert.equal(s3.getBerries(), 0);
 });
