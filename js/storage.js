@@ -5,6 +5,7 @@ const COUNTS_KEY = "pk_counts";
 const SOUND_KEY = "pk_sound";
 const WON_KEY = "pk_won";
 const LEVEL_KEY = "pk_level";
+const COMPANION_KEY = "pk_companion";
 
 export function makeStorage(backend = localStorage) {
   function getLevel() {
@@ -13,6 +14,18 @@ export function makeStorage(backend = localStorage) {
   }
   function setLevel(n) { backend.setItem(LEVEL_KEY, String(Math.min(MAX_LEVEL, Math.max(1, n | 0)))); }
   function activePool() { return pokemonForLevel(getLevel()); }
+
+  function getCompanion() {
+    const id = parseInt(backend.getItem(COMPANION_KEY), 10);
+    if (!Number.isInteger(id)) return null;
+    if (!activePool().some(p => p.id === id)) return null;
+    return (loadCounts()[id] || 0) > 0 ? id : null;
+  }
+  function setCompanion(id) { backend.setItem(COMPANION_KEY, id == null ? "" : String(id)); }
+  function toggleCompanion(id) {
+    const cur = parseInt(backend.getItem(COMPANION_KEY), 10);
+    setCompanion(cur === id ? null : id);
+  }
 
   function loadCounts() {
     const counts = {};
@@ -54,15 +67,17 @@ export function makeStorage(backend = localStorage) {
     backend.setItem(COUNTS_KEY, JSON.stringify({}));
     setLevel(1);
     setWon(false);
+    setCompanion(null);
   }
   function advanceLevel() {
     setLevel(getLevel() + 1);
     backend.setItem(COUNTS_KEY, JSON.stringify({}));
     setWon(false);
+    setCompanion(null);
   }
   function isSoundOn() { return backend.getItem(SOUND_KEY) !== "0"; }
   function setSound(on) { backend.setItem(SOUND_KEY, on ? "1" : "0"); }
 
   return { loadCounts, getCount, addCatch, penaltyAll, isWon, setWon, reset,
-           getLevel, setLevel, advanceLevel, isSoundOn, setSound };
+           getLevel, setLevel, advanceLevel, getCompanion, toggleCompanion, isSoundOn, setSound };
 }

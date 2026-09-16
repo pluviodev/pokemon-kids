@@ -94,3 +94,42 @@ test("reset setzt Level zurück auf 1", () => {
   s.reset();
   assert.equal(makeStorage(b).getLevel(), 1);
 });
+
+test("Begleiter: default null, toggle setzt und schaltet wieder aus", () => {
+  const b = fakeBackend();
+  const s = makeStorage(b);
+  assert.equal(s.getCompanion(), null);
+  s.addCatch(3);
+  s.toggleCompanion(3);
+  assert.equal(makeStorage(b).getCompanion(), 3);
+  s.toggleCompanion(3);                 // nochmal -> aus
+  assert.equal(makeStorage(b).getCompanion(), null);
+});
+
+test("getCompanion ignoriert nicht gefangene IDs", () => {
+  const b = fakeBackend();
+  const s = makeStorage(b);
+  s.toggleCompanion(4);                 // 4 ist NICHT gefangen
+  assert.equal(s.getCompanion(), null);
+});
+
+test("getCompanion ignoriert IDs, die nicht zum aktiven Level gehören", () => {
+  const b = fakeBackend();
+  const s = makeStorage(b);
+  s.addCatch(1);
+  s.toggleCompanion(1);
+  s.setLevel(2);                        // 1 gehört nicht zu Level 2
+  assert.equal(makeStorage(b).getCompanion(), null);
+});
+
+test("advanceLevel und reset leeren den Begleiter", () => {
+  const b = fakeBackend();
+  const s = makeStorage(b);
+  s.addCatch(2); s.toggleCompanion(2);
+  s.advanceLevel();
+  assert.equal(makeStorage(b).getCompanion(), null);
+  const s2 = makeStorage(b);
+  s2.setLevel(1); s2.addCatch(2); s2.toggleCompanion(2);
+  s2.reset();
+  assert.equal(makeStorage(b).getCompanion(), null);
+});
