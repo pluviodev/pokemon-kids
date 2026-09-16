@@ -2,8 +2,9 @@ import { VIRTUAL_W, VIRTUAL_H, PLAYER_SPEED, MAX_ACTIVE_SPAWNS,
          SPAWN_INTERVAL, GRASS_HIT_RADIUS } from "./config.js";
 import { stepPlayer, hitsGrass, atHouseDoor } from "./movement.js";
 import { pickSpawnId, allMaxed } from "./spawn.js";
-import { getImg, playerFrame } from "./sprites.js";
+import { getImg, playerFrame, getSprite } from "./sprites.js";
 import { levelData, pokemonForLevel } from "./levels.js";
+import { followStep, trailTarget } from "./follow.js";
 
 const S = VIRTUAL_W; // quadratisch
 // Türzone (Trigger) unter der Haustür; Spielfeld = Gras unter dem Haus
@@ -24,15 +25,27 @@ export function makeWorld({ ctx, audio, storage, onEncounter, onEnterHouse }) {
   let wasInDoor = false;
   let lv = levelData(storage.getLevel());
 
+  let companionId = null;
+  let companion = { x: player.x, y: player.y };
+  const GAP = 0.11 * S, MIN_DIST = 0.05 * S;
+
+  function loadCompanion() {
+    companionId = storage.getCompanion();
+    companion = { x: player.x, y: player.y };
+  }
+  loadCompanion(); // Erststart (Wiese ist Start-Screen, reset() läuft dabei nicht)
+
   function reset() {
     lv = levelData(storage.getLevel());
     player = { x: 0.5 * S, y: 0.65 * S }; target = { ...player };
     spawns = []; spawnTimer = 0; dir = "down"; moving = false; wasInDoor = false;
+    loadCompanion();
   }
 
   function exitHouse() {
     target = { ...player };
     wasInDoor = true;
+    loadCompanion();
   }
 
   function trySpawn() {
@@ -74,6 +87,11 @@ export function makeWorld({ ctx, audio, storage, onEncounter, onEnterHouse }) {
       stepT += dt;
     } else stepT = 0;
     player = stepPlayer(player, target, PLAYER_SPEED, dt, BOUNDS);
+
+    if (companionId != null) {
+      const tgt = trailTarget(player, dir, GAP);
+      companion = followStep(companion, tgt, PLAYER_SPEED, dt, MIN_DIST);
+    }
 
     spawnTimer += dt;
     if (spawnTimer >= SPAWN_INTERVAL) { spawnTimer = 0; trySpawn(); }
@@ -125,6 +143,13 @@ export function makeWorld({ ctx, audio, storage, onEncounter, onEnterHouse }) {
     }
     for (const s of spawns) {
       drawGrass(s, s.boss ? 0.26 * S : 0.13 * S, s.boss ? 9 : 5);
+    }
+
+    if (companionId != null) {
+      const spr = getSprite(companionId);
+      const ch = 0.11 * S, car = spr.width && spr.height ? spr.width / spr.height : 1;
+      const bob = Math.sin(t * 6) * 0.012 * S;
+      ctx.drawImage(spr, companion.x - ch * car / 2, companion.y - ch + bob, ch * car, ch);
     }
 
     const step = moving ? (Math.floor(stepT / 0.22) % 2) : 0;
