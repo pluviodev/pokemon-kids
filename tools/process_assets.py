@@ -34,7 +34,9 @@ for i, name in enumerate(CREATURES, start=1):
     im.save(os.path.join(OUT, "pokemon", f"{i:02d}.png"))
     print("pokemon", i, name, im.size)
 
-# Level-2-Kreaturen -> id 21..30 (Reihenfolge = rarity-Zuordnung in levels.js)
+# Level-2-Kreaturen -> id 21..30 (Reihenfolge = rarity-Zuordnung in levels.js).
+# Verarbeitung weiter unten (braucht cutout_flood), da die Bilder einen
+# hellen Hintergrund haben (Level-1 kam bereits transparent).
 CREATURES2 = [
     "Kieselkarlo, der Quarzhorn-Buddler",
     "Karatekarlo, der Rotpanda-Känguru-Kämpfer",
@@ -47,11 +49,6 @@ CREATURES2 = [
     "Glitzerkarla, das schwebende Feenreh",
     "Düsterkarl, der Schattenmasken-Schleicher",
 ]
-for i, name in enumerate(CREATURES2, start=21):
-    im = Image.open(os.path.join(SRC, name + ".png")).convert("RGBA")
-    im = fit(trim(im), 320)
-    im.save(os.path.join(OUT, "pokemon", f"{i:02d}.png"))
-    print("pokemon L2", i, name, im.size)
 
 # Hintergründe
 for src_name, out_name, box in [("Draußen", "world", 720), ("Drinnen", "house", 720)]:
@@ -167,6 +164,14 @@ print("lukas", lukas.size)
 lena = fit(cutout_flood(Image.open(os.path.join(SRC, "lena.png")), tol=50), 360)
 lena.save(os.path.join(OUT, "pokemon", "12.png"))
 print("lena", lena.size)
+
+# Level-2-Kreaturen: hellen Hintergrund per Ecken-Flood-Fill freistellen (wie Lena),
+# dann trimmen + skalieren wie die Level-1-Kreaturen.
+for i, name in enumerate(CREATURES2, start=21):
+    im = cutout_flood(Image.open(os.path.join(SRC, name + ".png")), tol=50)
+    im = fit(im, 320)
+    im.save(os.path.join(OUT, "pokemon", f"{i:02d}.png"))
+    print("pokemon L2", i, name, im.size)
 
 # Player-Spritesheet: 2 Spalten x 4 Reihen.
 # Jeden Frame EINZELN freischneiden und dann zentriert + fußbündig auf eine
