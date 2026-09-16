@@ -1,8 +1,8 @@
-import { VIRTUAL_W, VIRTUAL_H, POWERBAR_PERIOD, PERIOD_BY_RARITY, BOSS_ID, BOSS_BAND } from "./config.js";
+import { VIRTUAL_W, VIRTUAL_H, POWERBAR_PERIOD, PERIOD_BY_RARITY, BOSS_BAND } from "./config.js";
 import { markerPos } from "./powerbar.js";
 import { bandSize, makeBand, randomCenter, inBand } from "./catch.js";
 import { getImg, getSprite, wobbleOffset } from "./sprites.js";
-import { POKEMON } from "./data.js";
+import { levelData, pokemonForLevel } from "./levels.js";
 
 const S = VIRTUAL_W;
 const BAR = { x: 0.83 * S, y: 0.28 * S, w: 0.09 * S, h: 0.50 * S };
@@ -11,7 +11,7 @@ const POKE = { x: 0.5 * S, y: 0.42 * S };
 const THROW_TIME = 0.45;
 const BAND_PERIOD = 3.0; // Band-Bewegung beim Boss – bewusst anderes Tempo als der Marker (2.0)
 
-export function makeCatchScreen({ ctx, audio, onResult }) {
+export function makeCatchScreen({ ctx, audio, storage, onResult }) {
   let id = 1, isBoss = false, name = "";
   let phase = "aim";       // aim | throw | success | fail
   let t = 0, resultT = 0, throwT = 0;
@@ -20,15 +20,17 @@ export function makeCatchScreen({ ctx, audio, onResult }) {
   let bandSz = 0.16, band = { from: 0.4, to: 0.6 };
   let caught = false;
   let particles = [];
+  let lv = levelData(1);
 
   function start(newId) {
+    lv = levelData(storage.getLevel());
     id = newId;
-    isBoss = id === BOSS_ID;
-    const entry = POKEMON.find(p => p.id === id) || {};
-    name = isBoss ? "Lukas" : (entry.name || "");
+    isBoss = id === lv.boss.id;
+    const entry = pokemonForLevel(lv.n).find(p => p.id === id) || {};
+    name = isBoss ? lv.boss.name : (entry.name || "");
     const rarity = entry.rarity || "rare";
-    bandSz = isBoss ? BOSS_BAND : bandSize(rarity);
-    markerPeriod = isBoss ? POWERBAR_PERIOD : (PERIOD_BY_RARITY[rarity] || POWERBAR_PERIOD);
+    bandSz = (isBoss ? BOSS_BAND : bandSize(rarity)) * lv.diff.bandMul;
+    markerPeriod = (isBoss ? POWERBAR_PERIOD : (PERIOD_BY_RARITY[rarity] || POWERBAR_PERIOD)) * lv.diff.speedMul;
     band = makeBand(randomCenter(bandSz), bandSz);
     phase = "aim"; t = 0; markerT = 0; bandT = 0; pos = 0;
     caught = false; particles = [];
@@ -97,7 +99,7 @@ export function makeCatchScreen({ ctx, audio, onResult }) {
 
   function draw() {
     ctx.fillStyle = "#7fae5a"; ctx.fillRect(0, 0, S, S);
-    const bg = getImg("catchbg");
+    const bg = getImg(lv.catchbg);
     if (bg) {
       const scale = Math.max(S / bg.width, S / bg.height);
       const dw = bg.width * scale, dh = bg.height * scale;

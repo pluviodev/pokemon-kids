@@ -26,7 +26,7 @@ const world = makeWorld({
   onEnterHouse: () => { house.enter(); screen = "house"; },
 });
 const catchScreen = makeCatchScreen({
-  ctx, audio,
+  ctx, audio, storage,
   onResult: ({ id, caught }) => {
     if (id === BOSS_ID) {
       if (caught) { storage.setWon(true); win.start(); screen = "win"; return; }
