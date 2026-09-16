@@ -18,6 +18,19 @@ function pedestalPos(i) {
   return { x: XS[i % 5] * S, y: ROW_Y[Math.floor(i / 5)] * S };
 }
 
+// Kleines Pfötchen (Pad + 4 Zehen), zeigt den aktuellen Begleiter an.
+function drawPaw(ctx, cx, cy, r) {
+  ctx.save();
+  ctx.fillStyle = "#ff5aa6"; ctx.strokeStyle = "#fff"; ctx.lineWidth = r * 0.18;
+  ctx.beginPath(); ctx.ellipse(cx, cy + r * 0.35, r * 0.7, r * 0.55, 0, 0, Math.PI * 2);
+  ctx.fill(); ctx.stroke();
+  for (const [ox, oy, s] of [[-0.7, -0.55, 0.32], [-0.28, -0.8, 0.34], [0.28, -0.8, 0.34], [0.7, -0.55, 0.32]]) {
+    ctx.beginPath(); ctx.arc(cx + ox * r, cy + oy * r, r * s, 0, Math.PI * 2);
+    ctx.fill(); ctx.stroke();
+  }
+  ctx.restore();
+}
+
 // Statuen/Podeste sind Hindernisse (schmaler Fuß -> dazwischen laufbar)
 function blocked(x, y) {
   for (let i = 0; i < 10; i++) {
@@ -81,9 +94,11 @@ export function makeHouseScreen({ ctx, storage, onExit }) {
     if (house) ctx.drawImage(house, 0, 0, S, S);
 
     const slots = getSlots(storage.loadCounts(), pokemonForLevel(lv.n));
+    const companionId = storage.getCompanion();
     ctx.textAlign = "center"; ctx.textBaseline = "middle";
     slots.forEach((s, i) => {
       const p = pedestalPos(i);
+      if (s.id === companionId) drawPaw(ctx, p.x + 0.055 * S, p.y - 0.17 * S, 0.032 * S);
       if (s.count > 0) {
         const spr = s.maxed ? getGoldSprite(s.id) : getSprite(s.id);
         const h = SPR_H, ar = spr.width && spr.height ? spr.width / spr.height : 1;
@@ -126,9 +141,26 @@ export function makeHouseScreen({ ctx, storage, onExit }) {
     }
   }
 
+  // Tap-Trefferzone um ein Podest (großzügig, kindgerecht) -> id des gefangenen Karls oder null
+  function companionHitId(x, y) {
+    const counts = storage.loadCounts();
+    const pool = pokemonForLevel(lv.n);
+    for (let i = 0; i < pool.length; i++) {
+      const p = pedestalPos(i);
+      const inBox = x > p.x - 0.08 * S && x < p.x + 0.08 * S &&
+                    y > p.y - 0.20 * S && y < p.y + 0.07 * S;
+      if (inBox && (counts[pool[i].id] || 0) > 0) return pool[i].id;
+    }
+    return null;
+  }
+
   return {
     enter, update, draw,
-    onPointer(x, y) { target = { x, y }; },
+    onPointer(x, y) {
+      const id = companionHitId(x, y);
+      if (id != null) { storage.toggleCompanion(id); return; } // Karl antippen = Begleiter
+      target = { x, y };
+    },
     setKeys(k) { keys = k; },
   };
 }
