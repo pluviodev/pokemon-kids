@@ -1,8 +1,9 @@
 import { VIRTUAL_W, VIRTUAL_H, PLAYER_SPEED, MAX_ACTIVE_SPAWNS,
-         SPAWN_INTERVAL, GRASS_HIT_RADIUS, BOSS_ID } from "./config.js";
+         SPAWN_INTERVAL, GRASS_HIT_RADIUS } from "./config.js";
 import { stepPlayer, hitsGrass, atHouseDoor } from "./movement.js";
 import { pickSpawnId, allMaxed } from "./spawn.js";
 import { getImg, playerFrame } from "./sprites.js";
+import { levelData, pokemonForLevel } from "./levels.js";
 
 const S = VIRTUAL_W; // quadratisch
 // Türzone (Trigger) unter der Haustür; Spielfeld = Gras unter dem Haus
@@ -21,8 +22,10 @@ export function makeWorld({ ctx, audio, storage, onEncounter, onEnterHouse }) {
   let dir = "down";
   let stepT = 0, moving = false;
   let wasInDoor = false;
+  let lv = levelData(storage.getLevel());
 
   function reset() {
+    lv = levelData(storage.getLevel());
     player = { x: 0.5 * S, y: 0.65 * S }; target = { ...player };
     spawns = []; spawnTimer = 0; dir = "down"; moving = false; wasInDoor = false;
   }
@@ -34,18 +37,20 @@ export function makeWorld({ ctx, audio, storage, onEncounter, onEnterHouse }) {
 
   function trySpawn() {
     const counts = storage.loadCounts();
-    if (allMaxed(counts)) {
+    const pool = pokemonForLevel(lv.n);
+    const bossId = lv.boss.id;
+    if (allMaxed(counts, pool)) {
       if (storage.isWon()) { spawns = []; return; }
-      if (!spawns.some(s => s.id === BOSS_ID)) {
+      if (!spawns.some(s => s.id === bossId)) {
         // großes Grasbüschel ganz unten -> reingehen startet den Bossfight
-        spawns = [{ x: 0.5 * S, y: 0.90 * S, id: BOSS_ID, phase: 0, boss: true }];
+        spawns = [{ x: 0.5 * S, y: 0.90 * S, id: bossId, phase: 0, boss: true }];
       }
       return;
     }
     if (spawns.length >= MAX_ACTIVE_SPAWNS) return;
     const x = 0.14 * S + Math.random() * 0.72 * S;
     const y = 0.34 * S + Math.random() * 0.56 * S;
-    spawns.push({ x, y, id: pickSpawnId(Math.random, counts), phase: Math.random() * 6 });
+    spawns.push({ x, y, id: pickSpawnId(Math.random, counts, pool, bossId), phase: Math.random() * 6 });
   }
 
   function keyTarget() {
@@ -91,12 +96,12 @@ export function makeWorld({ ctx, audio, storage, onEncounter, onEnterHouse }) {
 
   function draw() {
     ctx.fillStyle = GRASS; ctx.fillRect(0, 0, S, S);
-    const world = getImg("world");
+    const world = getImg(lv.world);
     if (world) ctx.drawImage(world, 0, 0, S, S); // ganzes Bild
 
     // Grasbüschel-Sprite mit Wackeln + umherfliegenden gelben Punkten
     function drawGrass(s, h, dotCount) {
-      const spr = getImg("grass");
+      const spr = getImg(lv.grass);
       const sway = Math.sin(t * 3 + s.phase) * 0.09; // Neigung hin/her
       if (spr) {
         const ar = spr.width / spr.height, w = h * ar;
