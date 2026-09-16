@@ -1,4 +1,4 @@
-import { POKEMON } from "./data.js";
+import { LEVELS } from "./levels.js";
 
 export function wobbleOffset(t, id) {
   const phase = id * 0.7;
@@ -39,6 +39,10 @@ const MANIFEST = [
   ["ball", "assets/ball.png"],
   ["pokal", "assets/pokal.png"],
   ["grass", "assets/grass.png"],
+  ["world2", "assets/world2.png"],
+  ["house2", "assets/house2.png"],
+  ["catchbg2", "assets/catchbg2.png"],
+  ["grass2", "assets/grass2.png"],
   ["p_up_0", "assets/player/0_0.png"],
   ["p_up_1", "assets/player/0_1.png"],
   ["p_left_0", "assets/player/1_0.png"],
@@ -48,11 +52,12 @@ const MANIFEST = [
 ];
 
 export function loadAssets(onReady) {
-  const entries = [
-    ...MANIFEST,
-    ...POKEMON.map(p => ["pk" + p.id, p.sprite]),
-    ["pk11", "assets/pokemon/11.png"], // Lukas (Boss)
-  ];
+  const pkEntries = [];
+  for (const lv of LEVELS) {
+    for (const p of lv.pokemon) pkEntries.push(["pk" + p.id, p.sprite]);
+    pkEntries.push(["pk" + lv.boss.id, lv.boss.sprite]); // Boss je Level
+  }
+  const entries = [...MANIFEST, ...pkEntries];
   let pending = entries.length;
   const done = () => { if (--pending === 0 && onReady) onReady(); };
   for (const [key, src] of entries) {
