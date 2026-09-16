@@ -23,3 +23,8 @@ test("unlockedToys gibt die ersten n Toys", () => {
   assert.deepEqual(unlockedToys(0), []);
   assert.deepEqual(unlockedToys(1), [TOYS[0]]);
 });
+
+test("es gibt drei freischaltbare Spiele in fester Reihenfolge", () => {
+  assert.equal(TOYS.length, 3);
+  assert.deepEqual(TOYS.map(t => t.id), ["ball", "fussball", "fangen"]);
+});

@@ -2,7 +2,9 @@
 export const BERRIES_PER_TOY = 20;
 
 export const TOYS = [
-  { id: "ball", icon: "playball" },   // Paket 2/3 hängen hier "fussball"/"fangen" an
+  { id: "ball", icon: "playball" },
+  { id: "fussball", icon: "soccerball" },
+  { id: "fangen", icon: "arrow" },
 ];
 
 // Eine Beere dazu -> neuer Zustand + evtl. neu freigeschaltetes Toy (sonst null).
