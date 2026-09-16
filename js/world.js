@@ -60,8 +60,8 @@ export function makeWorld({ ctx, audio, storage, onEncounter, onEnterHouse, onBe
       }
       return;
     }
-    // selten eine Beere (viel seltener als Gras), unabhängig vom Gras-Limit, max 1
-    if (!spawns.some(s => s.berry) && Math.random() < 0.12) {
+    // Beere (seltener als Gras, aber grob jedes 3. Mal), unabhängig vom Gras-Limit, max 1
+    if (!spawns.some(s => s.berry) && Math.random() < 0.30) {
       spawns.push({ x: 0.14 * S + Math.random() * 0.72 * S, y: 0.34 * S + Math.random() * 0.56 * S, berry: true, phase: Math.random() * 6 });
     }
     if (spawns.filter(s => !s.berry).length >= MAX_ACTIVE_SPAWNS) return;
@@ -151,13 +151,14 @@ export function makeWorld({ ctx, audio, storage, onEncounter, onEnterHouse, onBe
     }
     function drawBerry(s) {
       const sway = Math.sin(t * 3 + s.phase) * 0.08;
+      const spr = getImg("berry");
       ctx.save(); ctx.translate(s.x, s.y); ctx.rotate(sway);
-      ctx.fillStyle = "#d63a4a"; ctx.strokeStyle = "#7a1420"; ctx.lineWidth = 3;
-      for (const dx of [-0.018 * S, 0.018 * S]) {
-        ctx.beginPath(); ctx.arc(dx, 0, 0.028 * S, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      if (spr) {
+        const h = 0.10 * S, w = h * (spr.width / spr.height);
+        ctx.drawImage(spr, -w / 2, -h * 0.7, w, h);
+      } else {
+        ctx.fillStyle = "#d63a4a"; ctx.beginPath(); ctx.arc(0, 0, 0.03 * S, 0, Math.PI * 2); ctx.fill();
       }
-      ctx.fillStyle = "#3aa03a";
-      ctx.beginPath(); ctx.ellipse(0, -0.03 * S, 0.02 * S, 0.01 * S, -0.5, 0, Math.PI * 2); ctx.fill();
       ctx.restore();
     }
     for (const s of spawns) {

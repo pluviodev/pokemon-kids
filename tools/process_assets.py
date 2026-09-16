@@ -287,3 +287,8 @@ print("soccerball", sb.size)
 arrow = fit(cutout_white(Image.open(os.path.join(SRC, "fangen.png"))), 200)
 arrow.save(os.path.join(OUT, "arrow.png"))
 print("arrow", arrow.size)
+
+# Beere (magische Waldbeere) -> berry.png (weißen Hintergrund per Flood-Fill freistellen)
+berry = fit(cutout_flood(Image.open(os.path.join(SRC, "Magische Pixel-Waldbeere.png")), tol=45), 160)
+berry.save(os.path.join(OUT, "berry.png"))
+print("berry", berry.size)
