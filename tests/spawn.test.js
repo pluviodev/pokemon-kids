@@ -28,3 +28,7 @@ test("pickSpawnId never returns a maxed species", () => {
 test("pickSpawnId returns BOSS when all species maxed", () => {
   assert.equal(pickSpawnId(() => 0.5, { 1: 10, 2: 10 }, pool), BOSS_ID);
 });
+
+test("pickSpawnId gibt den übergebenen bossId zurück (Level 2 = 12)", () => {
+  assert.equal(pickSpawnId(() => 0.5, { 1: 10, 2: 10 }, pool, 12), 12);
+});

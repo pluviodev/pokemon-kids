@@ -12,9 +12,9 @@ export function allMaxed(counts, pool = POKEMON) {
 }
 
 // Nächstes Spawn: gewichtet unter den noch offenen Arten; sind alle golden -> Boss.
-export function pickSpawnId(rng = Math.random, counts = {}, pool = POKEMON) {
+export function pickSpawnId(rng = Math.random, counts = {}, pool = POKEMON, bossId = BOSS_ID) {
   const avail = availableIds(counts, pool);
-  if (avail.length === 0) return BOSS_ID;
+  if (avail.length === 0) return bossId;
   const total = avail.reduce((s, p) => s + SPAWN_WEIGHT[p.rarity], 0);
   let r = rng() * total;
   for (const p of avail) {
