@@ -1,4 +1,5 @@
-import { VIRTUAL_W, VIRTUAL_H, BOSS_ID } from "./config.js";
+import { VIRTUAL_W, VIRTUAL_H } from "./config.js";
+import { levelData, pokemonForLevel, MAX_LEVEL } from "./levels.js";
 import { makeStorage } from "./storage.js";
 import { makeAudio } from "./audio.js";
 import { loadAssets } from "./sprites.js";
@@ -28,9 +29,20 @@ const world = makeWorld({
 const catchScreen = makeCatchScreen({
   ctx, audio, storage,
   onResult: ({ id, caught }) => {
-    if (id === BOSS_ID) {
-      if (caught) { storage.setWon(true); win.start(); screen = "win"; return; }
-      storage.penaltyAll();
+    const lv = levelData(storage.getLevel());
+    if (id === lv.boss.id) {
+      if (caught) {
+        if (lv.n < MAX_LEVEL) {
+          storage.advanceLevel();          // Level 1 geschafft -> direkt nächste Wiese
+        } else {
+          storage.setWon(true);
+          win.start(pokemonForLevel(lv.n)); // letztes Level -> Pokal-Screen
+          screen = "win";
+          return;
+        }
+      } else {
+        storage.penaltyAll();
+      }
     } else if (caught) {
       storage.addCatch(id);
     }

@@ -1,6 +1,6 @@
 import { VIRTUAL_W } from "./config.js";
 import { getImg, getSprite } from "./sprites.js";
-import { POKEMON } from "./data.js";
+import { pokemonForLevel } from "./levels.js";
 
 const S = VIRTUAL_W;
 // Zeitachse (Sekunden)
@@ -15,7 +15,9 @@ export function makeWinScreen({ ctx, audio, onNewGame }) {
   let particles = [], confetti = [];
   let partyStarted = false;
 
-  function start() {
+  let pool = pokemonForLevel(1);
+  function start(p) {
+    if (p) pool = p;
     t = 0; spawnAcc = 0; soundAcc = 0; popped = false;
     particles = []; confetti = []; partyStarted = false;
     audio.play("caught");
@@ -76,12 +78,12 @@ export function makeWinScreen({ ctx, audio, onNewGame }) {
 
   function drawPokemonRing() {
     const R = ringRadius();
-    for (let i = 0; i < POKEMON.length; i++) {
-      const ang = i / POKEMON.length * Math.PI * 2 + t * 0.5;
+    for (let i = 0; i < pool.length; i++) {
+      const ang = i / pool.length * Math.PI * 2 + t * 0.5;
       const x = CX + Math.cos(ang) * R;
       const y = CY + Math.sin(ang) * R * 0.8;
       const hop = -Math.abs(Math.sin(t * 5 + i)) * 0.035 * S;
-      const spr = getSprite(POKEMON[i].id);
+      const spr = getSprite(pool[i].id);
       const h = 0.13 * S, ar = spr.width && spr.height ? spr.width / spr.height : 1;
       ctx.save();
       ctx.translate(x, y + hop);
