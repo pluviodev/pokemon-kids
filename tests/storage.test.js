@@ -152,12 +152,15 @@ test("Beeren zählen hoch und schalten bei 20 ein Spiel frei", () => {
 test("reset leert Beeren + Spiele, advanceLevel behält sie", () => {
   const b = fakeBackend();
   const s = makeStorage(b);
-  for (let i = 0; i < 20; i++) s.collectBerry();  // 1 Spiel frei
-  s.collectBerry(); s.collectBerry();             // 2 Beeren
+  s.collectBerry(); s.collectBerry();             // 2 Beeren, noch nichts frei
   s.advanceLevel();
   const s2 = makeStorage(b);
-  assert.equal(s2.getToysUnlocked(), 1);          // bleibt über Level
-  assert.equal(s2.getBerries(), 2);
+  assert.equal(s2.getBerries(), 2);               // Beeren bleiben über Level
+  assert.equal(s2.getToysUnlocked(), 0);
+  for (let i = 0; i < 18; i++) s2.collectBerry(); // 2 + 18 = 20 -> Spiel frei
+  assert.equal(s2.getToysUnlocked(), 1);
+  s2.advanceLevel();
+  assert.equal(makeStorage(b).getToysUnlocked(), 1); // Freischaltung bleibt über Level
   s2.reset();
   const s3 = makeStorage(b);
   assert.equal(s3.getToysUnlocked(), 0);
