@@ -2,11 +2,12 @@ import { VIRTUAL_W, VIRTUAL_H } from "./config.js";
 import { levelData, pokemonForLevel, MAX_LEVEL } from "./levels.js";
 import { makeStorage } from "./storage.js";
 import { makeAudio } from "./audio.js";
-import { loadAssets } from "./sprites.js";
+import { loadAssets, getImg } from "./sprites.js";
 import { makeWorld } from "./world.js";
 import { makeCatchScreen } from "./catchscreen.js";
 import { makeHouseScreen } from "./housescreen.js";
 import { makeWinScreen } from "./win.js";
+import { makePlayScreen } from "./playscreen.js";
 
 const S = VIRTUAL_W;
 const canvas = document.getElementById("game");
@@ -21,10 +22,15 @@ const NEW = { x: S - 0.03 * S - BSZ, y: 0.03 * S, w: BSZ, h: BSZ };  // Neues Sp
 let screen = "world";
 let confirmReset = false;
 
+const BSZ2 = 0.10 * S;
+const PLAY = { x: S - 0.03 * S - BSZ2, y: 0.5 * S - BSZ2 / 2, w: BSZ2, h: BSZ2 }; // Spiel-Knopf rechts
+let popup = { active: false, icon: null, t: 0, parts: [] };
+
 const world = makeWorld({
   ctx, audio, storage,
   onEncounter: id => { catchScreen.start(id); screen = "catch"; },
   onEnterHouse: () => { house.enter(); screen = "house"; },
+  onBerry: (unlockedToy) => { if (unlockedToy) showPopup(unlockedToy.icon); },
 });
 const catchScreen = makeCatchScreen({
   ctx, audio, storage,
@@ -58,6 +64,10 @@ const win = makeWinScreen({
   ctx, audio,
   onNewGame: () => { storage.reset(); world.reset(); screen = "world"; },
 });
+const play = makePlayScreen({
+  ctx, storage, audio,
+  onExit: () => { world.reset(); screen = "world"; },
+});
 
 function toVirtual(ev) {
   const r = canvas.getBoundingClientRect();
@@ -70,9 +80,36 @@ const inRect = (x, y, r) => x >= r.x && x <= r.x + r.w && y >= r.y && y <= r.y +
 const YES = { x: S / 2 - 0.19 * S, y: S / 2 - 0.03 * S, w: 0.15 * S, h: 0.15 * S };
 const NO = { x: S / 2 + 0.04 * S, y: S / 2 - 0.03 * S, w: 0.15 * S, h: 0.15 * S };
 
+function showPopup(icon) {
+  popup = { active: true, icon, t: 0, parts: [] };
+  for (let i = 0; i < 80; i++) {
+    const a = Math.random() * Math.PI * 2, sp = 120 + Math.random() * 340;
+    popup.parts.push({ x: S / 2, y: 0.4 * S, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, hue: Math.floor(Math.random() * 360), life: 1 });
+  }
+  audio.play("caught");
+}
+function updatePopup(dt) {
+  popup.t += dt;
+  for (const p of popup.parts) { p.x += p.vx * dt; p.y += p.vy * dt; p.vy += 240 * dt; p.life -= dt * 0.5; }
+  popup.parts = popup.parts.filter(p => p.life > 0);
+  if (popup.t > 2.5) popup.active = false;
+}
+function drawPopup() {
+  ctx.fillStyle = "rgba(0,0,0,0.6)"; ctx.fillRect(0, 0, S, S);
+  for (const p of popup.parts) {
+    ctx.globalAlpha = Math.max(0, p.life); ctx.fillStyle = `hsl(${p.hue},100%,60%)`;
+    ctx.beginPath(); ctx.arc(p.x, p.y, 8, 0, Math.PI * 2); ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+  const ic = getImg(popup.icon);
+  if (ic) { const h = 0.34 * S, w = h * (ic.width / ic.height); ctx.drawImage(ic, S / 2 - w / 2, 0.4 * S - h / 2, w, h); }
+}
+
 function handleTap(ev) {
   ev.preventDefault();
   const { x, y } = toVirtual(ev);
+  if (popup.active) { popup.active = false; return; }   // Popup wegtippen
+  if (screen === "play") { play.onPointer(x, y); return; }
   if (confirmReset) {
     if (inRect(x, y, YES)) { storage.reset(); world.reset(); confirmReset = false; screen = "world"; }
     else if (inRect(x, y, NO)) { confirmReset = false; }
@@ -81,7 +118,10 @@ function handleTap(ev) {
   if (screen === "win") { win.onTap(x, y); return; }
   if (inRect(x, y, SND)) { audio.toggle(); return; }
   if (inRect(x, y, NEW)) { confirmReset = true; return; }
-  if (screen === "world") world.onPointer(x, y);
+  if (screen === "world") {
+    if (storage.isPlayUnlocked() && inRect(x, y, PLAY)) { play.enter(); screen = "play"; return; }
+    world.onPointer(x, y);
+  }
   else if (screen === "catch") { if (catchScreen.ballHit(x, y)) catchScreen.onTap(); }
   else if (screen === "house") house.onPointer(x, y);
 }
@@ -128,6 +168,12 @@ function drawNewGame() {
   drawRestartIcon(NEW.x + NEW.w / 2, NEW.y + NEW.h / 2, NEW.w * 0.26, NEW.w * 0.1);
 }
 
+function drawPlayButton() {
+  roundRect(PLAY, "#2b8a3e", "#0d3");
+  const ic = getImg("playball");
+  if (ic) ctx.drawImage(ic, PLAY.x + 0.14 * PLAY.w, PLAY.y + 0.14 * PLAY.h, PLAY.w * 0.72, PLAY.h * 0.72);
+}
+
 function drawConfirm() {
   ctx.fillStyle = "rgba(0,0,0,0.6)"; ctx.fillRect(0, 0, S, S);
   drawRestartIcon(S / 2, S / 2 - 0.2 * S, 0.06 * S, 0.02 * S);
@@ -154,6 +200,13 @@ function loop(now) {
     requestAnimationFrame(loop); // Sieger-Screen: keine Ecken-Buttons
     return;
   }
+  if (screen === "play") {
+    if (!popup.active) play.update(dt);
+    play.draw();
+    if (popup.active) { updatePopup(dt); drawPopup(); }
+    requestAnimationFrame(loop);   // eigene Leiste statt Ecken-Buttons
+    return;
+  }
   if (!confirmReset) {
     if (screen === "world") { world.update(dt); world.draw(); }
     else if (screen === "catch") { catchScreen.update(dt); catchScreen.draw(); }
@@ -164,8 +217,10 @@ function loop(now) {
     else if (screen === "house") house.draw();
   }
   drawSpeaker();
+  if (screen === "world" && storage.isPlayUnlocked()) drawPlayButton();
   drawNewGame();
   if (confirmReset) drawConfirm();
+  if (popup.active) { updatePopup(dt); drawPopup(); }
   requestAnimationFrame(loop);
 }
 
