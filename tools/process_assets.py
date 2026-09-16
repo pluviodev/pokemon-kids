@@ -165,13 +165,39 @@ lena = fit(cutout_flood(Image.open(os.path.join(SRC, "lena.png")), tol=50), 360)
 lena.save(os.path.join(OUT, "pokemon", "12.png"))
 print("lena", lena.size)
 
-# Level-2-Kreaturen: hellen Hintergrund per Ecken-Flood-Fill freistellen (wie Lena),
+# Zwei Level-2-Bilder (Mentakarl id 27, Drakarl id 28) haben statt eines echten
+# Alphas ein eingebranntes graues "Transparenz-Schachbrett" (zwei Grautöne).
+# Ecken-Flood entfernt nur den einen Ton -> der andere bleibt als graue
+# Wolken-Flecken. Für diese IDs neutral-graue Flächen komplett wegfloodn.
+CHECKER_IDS = {27, 28}
+
+# Neutral-graue Flächen (beide Schachbrett-Töne) vom Rand her transparent machen.
+def cutout_checker(im, lo=100, hi=225):
+    im = im.convert("RGBA"); px = im.load(); w, h = im.size
+    from collections import deque
+    seen = [[False] * w for _ in range(h)]; q = deque()
+    def gray(p):
+        r, g, b, _ = p; lum = (r + g + b) / 3
+        return abs(r - g) < 20 and abs(g - b) < 20 and lo <= lum <= hi
+    for cx, cy in [(0, 0), (w-1, 0), (0, h-1), (w-1, h-1)]:
+        if not seen[cy][cx]: q.append((cx, cy)); seen[cy][cx] = True
+    while q:
+        x, y = q.popleft(); p = px[x, y]
+        if not gray(p): continue
+        px[x, y] = (p[0], p[1], p[2], 0)
+        for nx, ny in ((x+1, y), (x-1, y), (x, y+1), (x, y-1)):
+            if 0 <= nx < w and 0 <= ny < h and not seen[ny][nx]:
+                seen[ny][nx] = True; q.append((nx, ny))
+    return trim(im)
+
+# Level-2-Kreaturen freistellen (Schachbrett-Fall vs. solider Hintergrund),
 # dann trimmen + skalieren wie die Level-1-Kreaturen.
 for i, name in enumerate(CREATURES2, start=21):
-    im = cutout_flood(Image.open(os.path.join(SRC, name + ".png")), tol=50)
-    im = fit(im, 320)
+    raw = Image.open(os.path.join(SRC, name + ".png")).convert("RGBA")
+    cut = cutout_checker(raw) if i in CHECKER_IDS else cutout_flood(raw, tol=50)
+    im = fit(cut, 320)
     im.save(os.path.join(OUT, "pokemon", f"{i:02d}.png"))
-    print("pokemon L2", i, name, im.size)
+    print("pokemon L2", i, name, "checker" if i in CHECKER_IDS else "flood", im.size)
 
 # Player-Spritesheet: 2 Spalten x 4 Reihen.
 # Jeden Frame EINZELN freischneiden und dann zentriert + fußbündig auf eine
