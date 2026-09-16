@@ -259,3 +259,15 @@ def legs_together(img, f_min=0.5):
 p11 = os.path.join(OUT, "player", "1_1.png")
 legs_together(Image.open(p11).convert("RGBA")).save(p11)
 print("legs_together -> 1_1.png")
+
+# Spielfeld (Fußballfeld) -> playfield.png
+pf = Image.open(os.path.join(SRC, "spielfeld.png")).convert("RGBA")
+pf = fit(pf, 900)
+pf.save(os.path.join(OUT, "playfield.png"))
+print("playfield", pf.size)
+
+# Spiel-Ball (rot-gelb) -> playball.png (weißer Hintergrund per Flood-Fill freistellen).
+# NICHT assets/ball.png (Fang-Pokéball) überschreiben!
+pb = fit(cutout_flood(Image.open(os.path.join(SRC, "ball.png")), tol=45), 200)
+pb.save(os.path.join(OUT, "playball.png"))
+print("playball", pb.size)
