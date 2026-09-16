@@ -13,7 +13,7 @@ const BOUNDS = { minX: 0.05 * S, minY: 0.28 * S, maxX: 0.95 * S, maxY: 0.97 * S 
 const GRASS = "#95c83a";
 const PLAYER_H = 0.15 * S;
 
-export function makeWorld({ ctx, audio, storage, onEncounter, onEnterHouse }) {
+export function makeWorld({ ctx, audio, storage, onEncounter, onEnterHouse, onBerry }) {
   let player = { x: 0.5 * S, y: 0.65 * S };
   let target = { x: 0.5 * S, y: 0.65 * S };
   let keys = new Set();
@@ -60,7 +60,11 @@ export function makeWorld({ ctx, audio, storage, onEncounter, onEnterHouse }) {
       }
       return;
     }
-    if (spawns.length >= MAX_ACTIVE_SPAWNS) return;
+    // selten eine Beere (viel seltener als Gras), unabhängig vom Gras-Limit, max 1
+    if (!spawns.some(s => s.berry) && Math.random() < 0.12) {
+      spawns.push({ x: 0.14 * S + Math.random() * 0.72 * S, y: 0.34 * S + Math.random() * 0.56 * S, berry: true, phase: Math.random() * 6 });
+    }
+    if (spawns.filter(s => !s.berry).length >= MAX_ACTIVE_SPAWNS) return;
     const x = 0.14 * S + Math.random() * 0.72 * S;
     const y = 0.34 * S + Math.random() * 0.56 * S;
     spawns.push({ x, y, id: pickSpawnId(Math.random, counts, pool, bossId), phase: Math.random() * 6 });
@@ -103,10 +107,14 @@ export function makeWorld({ ctx, audio, storage, onEncounter, onEnterHouse }) {
     for (const s of spawns) {
       const rad = s.boss ? GRASS_HIT_RADIUS * 1.8 : GRASS_HIT_RADIUS;
       if (hitsGrass(player, s, rad)) {
-        audio.play("encounter");
-        const id = s.id;
         spawns = spawns.filter(x => x !== s);
-        onEncounter(id);
+        if (s.berry) {
+          audio.play("caught");
+          onBerry(storage.collectBerry());     // Beere einsammeln (kein Fang-Screen)
+        } else {
+          audio.play("encounter");
+          onEncounter(s.id);
+        }
         return;
       }
     }
@@ -141,8 +149,20 @@ export function makeWorld({ ctx, audio, storage, onEncounter, onEnterHouse }) {
         ctx.restore();
       }
     }
+    function drawBerry(s) {
+      const sway = Math.sin(t * 3 + s.phase) * 0.08;
+      ctx.save(); ctx.translate(s.x, s.y); ctx.rotate(sway);
+      ctx.fillStyle = "#d63a4a"; ctx.strokeStyle = "#7a1420"; ctx.lineWidth = 3;
+      for (const dx of [-0.018 * S, 0.018 * S]) {
+        ctx.beginPath(); ctx.arc(dx, 0, 0.028 * S, 0, Math.PI * 2); ctx.fill(); ctx.stroke();
+      }
+      ctx.fillStyle = "#3aa03a";
+      ctx.beginPath(); ctx.ellipse(0, -0.03 * S, 0.02 * S, 0.01 * S, -0.5, 0, Math.PI * 2); ctx.fill();
+      ctx.restore();
+    }
     for (const s of spawns) {
-      drawGrass(s, s.boss ? 0.26 * S : 0.13 * S, s.boss ? 9 : 5);
+      if (s.berry) drawBerry(s);
+      else drawGrass(s, s.boss ? 0.26 * S : 0.13 * S, s.boss ? 9 : 5);
     }
 
     if (companionId != null) {
@@ -165,6 +185,17 @@ export function makeWorld({ ctx, audio, storage, onEncounter, onEnterHouse }) {
       }
       ctx.restore();
     }
+
+    // Glas unten-links: Beeren-Fortschritt 0..20
+    const jx = 0.05 * S, jy = 0.79 * S, jw = 0.09 * S, jh = 0.14 * S;
+    const p = Math.min(1, storage.getBerries() / 20);
+    ctx.save();
+    ctx.fillStyle = "rgba(255,255,255,0.22)"; ctx.strokeStyle = "#ffffff"; ctx.lineWidth = 4;
+    ctx.beginPath(); ctx.roundRect(jx, jy, jw, jh, 8); ctx.fill(); ctx.stroke();
+    const innerH = jh - 8, fh = innerH * p;
+    ctx.fillStyle = "#d63a4a";
+    ctx.fillRect(jx + 4, jy + 4 + (innerH - fh), jw - 8, fh);
+    ctx.restore();
   }
 
   return {
