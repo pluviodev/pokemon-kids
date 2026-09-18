@@ -5,6 +5,7 @@ import { pickSpawnId, allMaxed } from "./spawn.js";
 import { getImg, playerFrame, getSprite } from "./sprites.js";
 import { levelData, pokemonForLevel } from "./levels.js";
 import { followStep, trailTarget } from "./follow.js";
+import { BERRIES_PER_TOY } from "./toys.js";
 
 const S = VIRTUAL_W; // quadratisch
 // Türzone (Trigger) unter der Haustür; Spielfeld = Gras unter dem Haus
@@ -187,9 +188,9 @@ export function makeWorld({ ctx, audio, storage, onEncounter, onEnterHouse, onBe
       ctx.restore();
     }
 
-    // Glas unten-links: Beeren-Fortschritt 0..20
+    // Glas unten-links: Beeren-Fortschritt 0..BERRIES_PER_TOY
     const jx = 0.05 * S, jy = 0.79 * S, jw = 0.09 * S, jh = 0.14 * S;
-    const p = Math.min(1, storage.getBerries() / 20);
+    const p = Math.min(1, storage.getBerries() / BERRIES_PER_TOY);
     ctx.save();
     ctx.fillStyle = "rgba(255,255,255,0.22)"; ctx.strokeStyle = "#ffffff"; ctx.lineWidth = 4;
     ctx.beginPath(); ctx.roundRect(jx, jy, jw, jh, 8); ctx.fill(); ctx.stroke();

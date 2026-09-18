@@ -135,14 +135,14 @@ test("advanceLevel und reset leeren den Begleiter", () => {
   assert.equal(makeStorage(b).getCompanion(), null);
 });
 
-test("Beeren zählen hoch und schalten bei 20 ein Spiel frei", () => {
+test("Beeren zählen hoch und schalten bei 15 ein Spiel frei", () => {
   const b = fakeBackend();
   const s = makeStorage(b);
   assert.equal(s.getBerries(), 0);
   assert.equal(s.isPlayUnlocked(), false);
   let unlocked = null;
-  for (let i = 0; i < 20; i++) unlocked = s.collectBerry();
-  assert.deepEqual(unlocked, TOYS[0]);          // 20. Beere schaltet frei
+  for (let i = 0; i < 15; i++) unlocked = s.collectBerry();
+  assert.deepEqual(unlocked, TOYS[0]);          // 15. Beere schaltet frei
   const s2 = makeStorage(b);
   assert.equal(s2.getToysUnlocked(), 1);
   assert.equal(s2.getBerries(), 0);
@@ -157,7 +157,7 @@ test("reset leert Beeren + Spiele, advanceLevel behält sie", () => {
   const s2 = makeStorage(b);
   assert.equal(s2.getBerries(), 2);               // Beeren bleiben über Level
   assert.equal(s2.getToysUnlocked(), 0);
-  for (let i = 0; i < 18; i++) s2.collectBerry(); // 2 + 18 = 20 -> Spiel frei
+  for (let i = 0; i < 13; i++) s2.collectBerry(); // 2 + 13 = 15 -> Spiel frei
   assert.equal(s2.getToysUnlocked(), 1);
   s2.advanceLevel();
   assert.equal(makeStorage(b).getToysUnlocked(), 1); // Freischaltung bleibt über Level

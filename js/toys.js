@@ -1,5 +1,5 @@
 // Freischaltbare Spiele + Beeren-Freischalt-Logik (DOM-frei, testbar).
-export const BERRIES_PER_TOY = 20;
+export const BERRIES_PER_TOY = 15;
 
 export const TOYS = [
   { id: "ball", icon: "playball" },
