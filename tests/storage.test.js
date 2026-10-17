@@ -4,6 +4,7 @@ import { makeStorage } from "../js/storage.js";
 import { MAX_PER_SPECIES } from "../js/config.js";
 import { pokemonForLevel } from "../js/levels.js";
 import { TOYS } from "../js/toys.js";
+import { PIKA_ID } from "../js/pika.js";
 
 function fakeBackend() {
   const m = new Map();
@@ -165,4 +166,49 @@ test("reset leert Beeren + Spiele, advanceLevel behält sie", () => {
   const s3 = makeStorage(b);
   assert.equal(s3.getToysUnlocked(), 0);
   assert.equal(s3.getBerries(), 0);
+});
+
+test("Pika: Treffer zaehlen bis 5 und deckeln dort", () => {
+  const s = makeStorage(fakeBackend());
+  assert.equal(s.getPikaHits(), 0);
+  for (let i = 0; i < 9; i++) s.addPikaHit();
+  assert.equal(s.getPikaHits(), 5);
+});
+
+test("Pika: gefangen-Flag persistiert", () => {
+  const b = fakeBackend();
+  const s = makeStorage(b);
+  assert.equal(s.isPikaCaught(), false);
+  s.setPikaCaught(true);
+  assert.equal(makeStorage(b).isPikaCaught(), true);
+});
+
+test("Pika ueberlebt den Levelaufstieg, Begleiter nicht", () => {
+  const s = makeStorage(fakeBackend());
+  s.addPikaHit(); s.addPikaHit(); s.setPikaCaught(true);
+  s.addCatch(1); s.setCompanion(1);
+  assert.equal(s.getCompanion(), 1);
+  s.advanceLevel();
+  assert.equal(s.isPikaCaught(), true);
+  assert.equal(s.getPikaHits(), 2);
+  assert.equal(s.getCompanion(), null);
+});
+
+test("Neues Spiel loescht auch Pikarlchu", () => {
+  const s = makeStorage(fakeBackend());
+  s.addPikaHit(); s.setPikaCaught(true);
+  s.reset();
+  assert.equal(s.isPikaCaught(), false);
+  assert.equal(s.getPikaHits(), 0);
+});
+
+test("getCompanion gibt Pikarlchu nur zurueck, wenn er gefangen ist", () => {
+  const s = makeStorage(fakeBackend());
+  s.setCompanion(PIKA_ID);
+  assert.equal(s.getCompanion(), null);     // noch nicht gefangen
+  s.setPikaCaught(true);
+  assert.equal(s.getCompanion(), PIKA_ID);  // gilt in jedem Level
+  s.advanceLevel();
+  s.setCompanion(PIKA_ID);
+  assert.equal(s.getCompanion(), PIKA_ID);  // auch in Level 2 waehlbar
 });
