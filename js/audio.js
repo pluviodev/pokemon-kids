@@ -9,6 +9,8 @@ export function makeAudio(storage) {
     caught:    [{ f: 660, d: 0.1 }, { f: 880, d: 0.1 }, { f: 1320, d: 0.16 }],
     flee:      [{ f: 300, d: 0.12 }, { f: 180, d: 0.16 }],
     encounter: [{ f: 520, d: 0.06 }, { f: 780, d: 0.06 }],
+    zap:       [{ f: 1100, d: 0.05 }, { f: 1500, d: 0.05 }],
+    thunder:   [{ f: 160, d: 0.22 }, { f: 90, d: 0.3 }, { f: 60, d: 0.35 }],
   };
   function play(name) {
     if (!storage.isSoundOn()) return;

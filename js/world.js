@@ -6,6 +6,9 @@ import { getImg, playerFrame, getSprite } from "./sprites.js";
 import { levelData, pokemonForLevel } from "./levels.js";
 import { followStep, trailTarget } from "./follow.js";
 import { BERRIES_PER_TOY } from "./toys.js";
+import { PIKA_ID, PIKA_HITS_NEEDED, APPEAR_GAP, PEEK_TIME, DASH_TIME, TAP_RADIUS,
+         BURST_NEED, BURST_WINDOW, BURST_COOLDOWN,
+         pickAppearance, dashX, hitsAppearance, isBurst } from "./pika.js";
 
 const S = VIRTUAL_W; // quadratisch
 // Türzone (Trigger) unter der Haustür; Spielfeld = Gras unter dem Haus
@@ -14,7 +17,7 @@ const BOUNDS = { minX: 0.05 * S, minY: 0.28 * S, maxX: 0.95 * S, maxY: 0.97 * S 
 const GRASS = "#95c83a";
 const PLAYER_H = 0.15 * S;
 
-export function makeWorld({ ctx, audio, storage, onEncounter, onEnterHouse, onBerry }) {
+export function makeWorld({ ctx, audio, storage, onEncounter, onEnterHouse, onBerry, onPikaCatch }) {
   let player = { x: 0.5 * S, y: 0.65 * S };
   let target = { x: 0.5 * S, y: 0.65 * S };
   let keys = new Set();
@@ -30,6 +33,20 @@ export function makeWorld({ ctx, audio, storage, onEncounter, onEnterHouse, onBe
   let companion = { x: player.x, y: player.y };
   const GAP = 0.11 * S, MIN_DIST = 0.05 * S;
 
+  // Pikarlchu: Auftritte auf der Wiese + Blitz-Salve als Begleiter
+  let pika = null;               // {kind, spot|y, fromLeft, t}
+  let pikaTimer = APPEAR_GAP.min;
+  let pikaHitFx = [];
+  let tapTimes = [];
+  let burstT = -BURST_COOLDOWN;
+
+  // Eine Quelle fuer Zeichnen UND Treffer, damit Sicht und Tap nie auseinanderlaufen.
+  function pikaPos() {
+    if (!pika) return null;
+    if (pika.kind === "peek") return { x: pika.spot.x * S, y: pika.spot.y * S };
+    return { x: dashX(pika.t, DASH_TIME, pika.fromLeft, S, 0.12 * S), y: pika.y * S };
+  }
+
   function loadCompanion() {
     companionId = storage.getCompanion();
     companion = { x: player.x, y: player.y };
@@ -40,12 +57,14 @@ export function makeWorld({ ctx, audio, storage, onEncounter, onEnterHouse, onBe
     lv = levelData(storage.getLevel());
     player = { x: 0.5 * S, y: 0.65 * S }; target = { ...player };
     spawns = []; spawnTimer = 0; dir = "down"; moving = false; wasInDoor = false;
+    pika = null; pikaHitFx = []; tapTimes = [];
     loadCompanion();
   }
 
   function exitHouse() {
     target = { ...player };
     wasInDoor = true;
+    pika = null; tapTimes = [];
     loadCompanion();
   }
 
@@ -100,6 +119,23 @@ export function makeWorld({ ctx, audio, storage, onEncounter, onEnterHouse, onBe
 
     spawnTimer += dt;
     if (spawnTimer >= SPAWN_INTERVAL) { spawnTimer = 0; trySpawn(); }
+
+    // Pikarlchu-Auftritte: nur solange nicht gefangen und kein Boss wartet
+    if (!storage.isPikaCaught() && !spawns.some(s => s.boss)) {
+      if (pika) {
+        pika.t += dt;
+        if (pika.t >= (pika.kind === "peek" ? PEEK_TIME : DASH_TIME)) pika = null;
+      } else {
+        pikaTimer -= dt;
+        if (pikaTimer <= 0) {
+          pika = { ...pickAppearance(Math.random), t: 0 };
+          pikaTimer = APPEAR_GAP.min + Math.random() * (APPEAR_GAP.max - APPEAR_GAP.min);
+        }
+      }
+    } else pika = null;
+
+    for (const f of pikaHitFx) { f.x += f.vx * dt; f.y += f.vy * dt; f.life -= dt * 1.4; }
+    pikaHitFx = pikaHitFx.filter(f => f.life > 0);
 
     const inDoor = atHouseDoor(player, DOOR);
     if (inDoor && !wasInDoor) { wasInDoor = true; onEnterHouse(); return; }
@@ -167,6 +203,28 @@ export function makeWorld({ ctx, audio, storage, onEncounter, onEnterHouse, onBe
       else drawGrass(s, s.boss ? 0.26 * S : 0.13 * S, s.boss ? 9 : 5);
     }
 
+    // Pikarlchu-Auftritt
+    const pp = pikaPos();
+    if (pp) {
+      const spr = getSprite(PIKA_ID);
+      const h = 0.13 * S, ar = spr.width && spr.height ? spr.width / spr.height : 1;
+      const wob = Math.sin(t * 9) * 0.008 * S;
+      ctx.save();
+      if (pika.kind === "peek") {
+        // unten anschneiden -> er steckt sichtbar hinter dem Objekt
+        ctx.beginPath(); ctx.rect(pp.x - h, pp.y - h, h * 2, h * 0.62); ctx.clip();
+      }
+      ctx.shadowColor = "rgba(255,230,80,0.9)"; ctx.shadowBlur = 18;
+      ctx.drawImage(spr, pp.x - h * ar / 2 + wob, pp.y - h, h * ar, h);
+      ctx.restore();
+    }
+    for (const f of pikaHitFx) {
+      ctx.globalAlpha = Math.max(0, f.life);
+      ctx.fillStyle = "#fff36b";
+      ctx.beginPath(); ctx.arc(f.x, f.y, 6, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+
     if (companionId != null) {
       const spr = getSprite(companionId);
       const ch = 0.11 * S, car = spr.width && spr.height ? spr.width / spr.height : 1;
@@ -198,11 +256,66 @@ export function makeWorld({ ctx, audio, storage, onEncounter, onEnterHouse, onBe
     ctx.fillStyle = "#d63a4a";
     ctx.fillRect(jx + 4, jy + 4 + (innerH - fh), jw - 8, fh);
     ctx.restore();
+
+    // Pikarlchu-Treffer: 5 Blitz-Zeichen neben dem Glas
+    if (!storage.isPikaCaught()) {
+      const hits = storage.getPikaHits();
+      for (let i = 0; i < PIKA_HITS_NEEDED; i++) {
+        const bx = jx + jw + 0.03 * S + i * 0.045 * S, by = jy + jh * 0.5;
+        ctx.save();
+        ctx.fillStyle = i < hits ? "#ffd21e" : "rgba(0,0,0,0.35)";
+        ctx.strokeStyle = "rgba(0,0,0,0.75)"; ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(bx, by - 0.025 * S);
+        ctx.lineTo(bx - 0.012 * S, by);
+        ctx.lineTo(bx + 0.002 * S, by);
+        ctx.lineTo(bx - 0.006 * S, by + 0.025 * S);
+        ctx.lineTo(bx + 0.014 * S, by - 0.004 * S);
+        ctx.lineTo(bx + 0.001 * S, by - 0.004 * S);
+        ctx.closePath(); ctx.fill(); ctx.stroke();
+        ctx.restore();
+      }
+    }
+
+    // Donnerblitz-Show des Begleiters
+    const bt = t - burstT;
+    if (bt < 1.2) {
+      ctx.save();
+      ctx.globalAlpha = Math.max(0, 1 - bt / 1.2) * (Math.sin(bt * 40) > -0.3 ? 0.85 : 0.2);
+      ctx.fillStyle = "#fffbe0"; ctx.fillRect(0, 0, S, S);
+      ctx.restore();
+    }
   }
 
   return {
     update, draw, reset, exitHouse,
-    onPointer(x, y) { target = { x, y }; },
+    onPointer(x, y) {
+      const r = TAP_RADIUS * S;
+      // 1) laufender Auftritt getroffen? -> zaehlt, Figur laeuft dabei NICHT los
+      const p = pikaPos();
+      if (p && hitsAppearance({ x, y }, p, r)) {
+        audio.play("zap");
+        for (let i = 0; i < 14; i++) {
+          const a = Math.random() * Math.PI * 2, sp = 120 + Math.random() * 300;
+          pikaHitFx.push({ x: p.x, y: p.y, vx: Math.cos(a) * sp, vy: Math.sin(a) * sp, life: 1 });
+        }
+        pika = null;
+        const hits = storage.addPikaHit();
+        if (hits >= PIKA_HITS_NEEDED) onPikaCatch();
+        return;
+      }
+      // 2) Begleiter Pikarlchu angetippt? -> Salve zaehlen
+      if (companionId === PIKA_ID &&
+          hitsAppearance({ x, y }, { x: companion.x, y: companion.y - 0.05 * S }, r)) {
+        tapTimes = tapTimes.filter(ts => t - ts <= BURST_WINDOW);
+        tapTimes.push(t);
+        if (t - burstT >= BURST_COOLDOWN && isBurst(tapTimes, t, BURST_NEED, BURST_WINDOW)) {
+          burstT = t; tapTimes = []; audio.play("thunder");
+        }
+        return;
+      }
+      target = { x, y };
+    },
     setKeys(k) { keys = k; },
   };
 }

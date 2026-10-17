@@ -2,6 +2,7 @@ import { VIRTUAL_W, VIRTUAL_H, PLAYER_SPEED, MAX_PER_SPECIES } from "./config.js
 import { getSlots } from "./collection.js";
 import { getSprite, getGoldSprite, getImg, playerFrame } from "./sprites.js";
 import { stepPlayer } from "./movement.js";
+import { PIKA_ID, PIKA_NAME } from "./pika.js";
 import { levelData, pokemonForLevel } from "./levels.js";
 
 const S = VIRTUAL_W; // quadratisch, Haus-Bild füllt das ganze Feld
@@ -12,6 +13,9 @@ const BOUNDS = { minX: 0.08 * S, minY: 0.27 * S, maxX: 0.92 * S, maxY: 0.95 * S 
 // Abstand zur unteren Podest-Reihe (y 0.60) bleibt, damit man nicht versehentlich rausläuft.
 const EXIT = { x: 0.12 * S, y: 0.80 * S, w: 0.76 * S, h: 0.19 * S };
 const PLAYER_H = 0.15 * S;
+// Ehrenplatz fuer Pikarlchu: mittig an der Rueckwand unter dem Gemaelde.
+// Liegt ausserhalb von BOUNDS -> blockiert nichts, blocked() bleibt unberuehrt.
+const PIKA_SPOT = { x: 0.5 * S, y: 0.255 * S };
 const SPR_H = 0.15 * S;
 
 function pedestalPos(i) {
@@ -127,6 +131,32 @@ export function makeHouseScreen({ ctx, storage, onExit }) {
       ctx.fillStyle = s.maxed ? "#ffd21e" : "#ffffff";
       ctx.fillText(label, p.x, p.y + 0.05 * S);
     });
+
+    // Ehrenplatz fuer Pikarlchu (level-unabhaengig, kein Zaehler - er ist einmalig)
+    ctx.save();
+    ctx.fillStyle = "rgba(20,12,6,0.45)";
+    ctx.beginPath();
+    ctx.ellipse(PIKA_SPOT.x, PIKA_SPOT.y + 0.012 * S, 0.055 * S, 0.016 * S, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+    if (storage.isPikaCaught()) {
+      if (companionId === PIKA_ID) drawPaw(ctx, PIKA_SPOT.x + 0.055 * S, PIKA_SPOT.y - 0.17 * S, 0.032 * S);
+      const pspr = getSprite(PIKA_ID);
+      const ph = SPR_H, par = pspr.width && pspr.height ? pspr.width / pspr.height : 1;
+      ctx.save();
+      ctx.shadowColor = "rgba(255,210,50,0.9)"; ctx.shadowBlur = 26;
+      ctx.drawImage(pspr, PIKA_SPOT.x - ph * par / 2, PIKA_SPOT.y - ph + 20, ph * par, ph);
+      ctx.restore();
+      ctx.font = "bold " + (0.028 * S) + "px system-ui, sans-serif";
+      ctx.lineWidth = 4; ctx.strokeStyle = "rgba(0,0,0,0.8)";
+      ctx.strokeText(PIKA_NAME, PIKA_SPOT.x, PIKA_SPOT.y - 0.155 * S);
+      ctx.fillStyle = "#ffd21e";
+      ctx.fillText(PIKA_NAME, PIKA_SPOT.x, PIKA_SPOT.y - 0.155 * S);
+    } else {
+      ctx.fillStyle = "rgba(20,12,6,0.5)";
+      ctx.beginPath(); ctx.arc(PIKA_SPOT.x, PIKA_SPOT.y - 0.03 * S, 0.045 * S, 0, Math.PI * 2); ctx.fill();
+    }
+
     ctx.textAlign = "left"; ctx.textBaseline = "alphabetic";
 
     const step = moving ? (Math.floor(stepT / 0.22) % 2) : 0;
@@ -160,6 +190,12 @@ export function makeHouseScreen({ ctx, storage, onExit }) {
   return {
     enter, update, draw,
     onPointer(x, y) {
+      // Ehrenplatz zuerst: Pikarlchu verdraengt den Karl-Begleiter (nur ein Schluessel)
+      if (storage.isPikaCaught() &&
+          Math.hypot(x - PIKA_SPOT.x, y - PIKA_SPOT.y) <= 0.08 * S) {
+        storage.toggleCompanion(PIKA_ID);
+        return;
+      }
       const id = companionHitId(x, y);
       if (id != null) { storage.toggleCompanion(id); return; } // Karl antippen = Begleiter
       target = { x, y };

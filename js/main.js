@@ -8,6 +8,7 @@ import { makeCatchScreen } from "./catchscreen.js";
 import { makeHouseScreen } from "./housescreen.js";
 import { makeWinScreen } from "./win.js";
 import { makePlayScreen } from "./playscreen.js";
+import { makePikaScreen } from "./pikascreen.js";
 
 const S = VIRTUAL_W;
 const canvas = document.getElementById("game");
@@ -31,6 +32,7 @@ const world = makeWorld({
   onEncounter: id => { catchScreen.start(id); screen = "catch"; },
   onEnterHouse: () => { house.enter(); screen = "house"; },
   onBerry: (unlockedToy) => { if (unlockedToy) showPopup(unlockedToy.icon); },
+  onPikaCatch: () => { pikaScreen.start(); screen = "pika"; },
 });
 const catchScreen = makeCatchScreen({
   ctx, audio, storage,
@@ -67,6 +69,10 @@ const win = makeWinScreen({
 const play = makePlayScreen({
   ctx, storage, audio,
   onExit: () => { world.reset(); screen = "world"; },
+});
+const pikaScreen = makePikaScreen({
+  ctx, audio, storage,
+  onDone: () => { world.reset(); screen = "world"; },
 });
 
 function toVirtual(ev) {
@@ -123,6 +129,7 @@ function handleTap(ev) {
     world.onPointer(x, y);
   }
   else if (screen === "catch") { if (catchScreen.ballHit(x, y)) catchScreen.onTap(); }
+  else if (screen === "pika") pikaScreen.onTap();
   else if (screen === "house") house.onPointer(x, y);
 }
 canvas.addEventListener("mousedown", handleTap);
@@ -132,6 +139,7 @@ const keys = new Set();
 window.addEventListener("keydown", e => {
   keys.add(e.key); world.setKeys(keys); house.setKeys(keys);
   if (screen === "catch" && (e.key === " " || e.key === "Enter")) catchScreen.onTap();
+  if (screen === "pika" && (e.key === " " || e.key === "Enter")) pikaScreen.onTap();
 });
 window.addEventListener("keyup", e => { keys.delete(e.key); world.setKeys(keys); house.setKeys(keys); });
 
@@ -211,10 +219,12 @@ function loop(now) {
     if (screen === "world") { world.update(dt); world.draw(); }
     else if (screen === "catch") { catchScreen.update(dt); catchScreen.draw(); }
     else if (screen === "house") { house.update(dt); house.draw(); }
+    else if (screen === "pika") { pikaScreen.update(dt); pikaScreen.draw(); }
   } else {
     if (screen === "world") world.draw();
     else if (screen === "catch") catchScreen.draw();
     else if (screen === "house") house.draw();
+    else if (screen === "pika") pikaScreen.draw();
   }
   drawSpeaker();
   if (screen === "world" && storage.isPlayUnlocked()) drawPlayButton();
