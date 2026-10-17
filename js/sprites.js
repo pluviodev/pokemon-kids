@@ -1,4 +1,5 @@
 import { LEVELS } from "./levels.js";
+import { PIKA_ID, PIKA_SPRITE } from "./pika.js";
 
 export function wobbleOffset(t, id) {
   const phase = id * 0.7;
@@ -63,6 +64,7 @@ export function loadAssets(onReady) {
     for (const p of lv.pokemon) pkEntries.push(["pk" + p.id, p.sprite]);
     pkEntries.push(["pk" + lv.boss.id, lv.boss.sprite]); // Boss je Level
   }
+  pkEntries.push(["pk" + PIKA_ID, PIKA_SPRITE]);          // Sonder-Karl ausserhalb der Level-Pools
   const entries = [...MANIFEST, ...pkEntries];
   let pending = entries.length;
   const done = () => { if (--pending === 0 && onReady) onReady(); };

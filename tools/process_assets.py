@@ -292,3 +292,11 @@ print("arrow", arrow.size)
 berry = fit(cutout_flood(Image.open(os.path.join(SRC, "Magische Pixel-Waldbeere.png")), tol=45), 160)
 berry.save(os.path.join(OUT, "berry.png"))
 print("berry", berry.size)
+
+# Pikarlchu: kleiner DS-Sprite -> Nearest-Neighbor hochrechnen, damit er knackig bleibt
+# (fit() nutzt LANCZOS und wuerde die Pixel verwaschen).
+pika = trim(Image.open(os.path.join(SRC, "Pikarlchu.png")).convert("RGBA"))
+_f = 320 / max(pika.size)
+pika = pika.resize((round(pika.width * _f), round(pika.height * _f)), Image.NEAREST)
+pika.save(os.path.join(OUT, "pokemon", "13.png"))
+print("pokemon 13 Pikarlchu", pika.size)
