@@ -7,7 +7,7 @@ import { levelData, pokemonForLevel } from "./levels.js";
 import { followStep, trailTarget } from "./follow.js";
 import { BERRIES_PER_TOY } from "./toys.js";
 import { PIKA_ID, PIKA_HITS_NEEDED, APPEAR_GAP, PEEK_TIME, DASH_TIME, TAP_RADIUS,
-         BURST_NEED, BURST_WINDOW, BURST_COOLDOWN,
+         PEEK_H, PEEK_VISIBLE, BURST_NEED, BURST_WINDOW, BURST_COOLDOWN,
          pickAppearance, dashX, hitsAppearance, isBurst } from "./pika.js";
 
 const S = VIRTUAL_W; // quadratisch
@@ -41,7 +41,7 @@ export function makeWorld({ ctx, audio, storage, onEncounter, onEnterHouse, onBe
   let burstT = -BURST_COOLDOWN;
 
   // Eine Quelle fuer Zeichnen UND Treffer, damit Sicht und Tap nie auseinanderlaufen.
-  const PIKA_H = 0.13 * S;              // Zeichenhoehe des Auftritts
+  const PIKA_H = PEEK_H * S;            // Zeichenhoehe des Auftritts (gemeinsam mit pika.js)
   function pikaPos() {                  // Fusspunkt (dort steht er)
     if (!pika) return null;
     if (pika.kind === "peek") return { x: pika.spot.x * S, y: pika.spot.y * S };
@@ -52,7 +52,7 @@ export function makeWorld({ ctx, audio, storage, onEncounter, onEnterHouse, onBe
   function pikaHitCenter() {
     const p = pikaPos();
     if (!p) return null;
-    return { x: p.x, y: p.y - PIKA_H * (pika.kind === "peek" ? 0.68 : 0.5) };
+    return { x: p.x, y: p.y - PIKA_H * (pika.kind === "peek" ? 1 - PEEK_VISIBLE / 2 : 0.5) };
   }
 
   function loadCompanion() {
@@ -220,7 +220,7 @@ export function makeWorld({ ctx, audio, storage, onEncounter, onEnterHouse, onBe
       ctx.save();
       if (pika.kind === "peek") {
         // unten anschneiden -> er steckt sichtbar hinter dem Objekt
-        ctx.beginPath(); ctx.rect(pp.x - h, pp.y - h, h * 2, h * 0.62); ctx.clip();
+        ctx.beginPath(); ctx.rect(pp.x - h, pp.y - h, h * 2, h * PEEK_VISIBLE); ctx.clip();
       }
       ctx.shadowColor = "rgba(255,230,80,0.9)"; ctx.shadowBlur = 18;
       ctx.drawImage(spr, pp.x - h * ar / 2 + wob, pp.y - h, h * ar, h);

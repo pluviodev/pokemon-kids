@@ -1,7 +1,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { PIKA_ID, PIKA_HITS_NEEDED, PEEK_SPOTS, pickAppearance, dashX,
-         hitsAppearance, chargeStep, isBurst, DASH_Y } from "../js/pika.js";
+         hitsAppearance, chargeStep, isBurst, DASH_Y,
+         BLOCKED_AREAS, peekVisibleBox } from "../js/pika.js";
 
 test("PIKA_ID kollidiert mit keiner Level-ID", async () => {
   const { LEVELS } = await import("../js/levels.js");
@@ -62,4 +63,25 @@ test("isBurst erkennt 5 Taps im Fenster, ignoriert zu alte", () => {
   assert.ok(isBurst([9.2, 9.4, 9.6, 9.8, 10.0], 10.0, 5, 2));
   assert.ok(!isBurst([1, 2, 3, 4, 10.0], 10.0, 5, 2));
   assert.ok(!isBurst([9.8, 10.0], 10.0, 5, 2));
+});
+
+// Regression: ein Versteck unter einem Button ist fuer das Kind unsichtbar.
+test("kein Versteck liegt unter einem Button oder dem HUD", () => {
+  for (const spot of PEEK_SPOTS) {
+    const b = peekVisibleBox(spot);
+    for (const a of BLOCKED_AREAS) {
+      const overlaps = b.x0 < a.x1 && b.x1 > a.x0 && b.y0 < a.y1 && b.y1 > a.y0;
+      assert.ok(!overlaps,
+        `Versteck (${spot.x}, ${spot.y}) ueberlappt belegte Flaeche ` +
+        `(${a.x0},${a.y0})-(${a.x1},${a.y1})`);
+    }
+  }
+});
+
+test("jedes Versteck liegt vollstaendig im Bild", () => {
+  for (const spot of PEEK_SPOTS) {
+    const b = peekVisibleBox(spot);
+    assert.ok(b.x0 >= 0 && b.x1 <= 1 && b.y0 >= 0 && b.y1 <= 1,
+      `Versteck (${spot.x}, ${spot.y}) ragt aus dem Bild`);
+  }
 });

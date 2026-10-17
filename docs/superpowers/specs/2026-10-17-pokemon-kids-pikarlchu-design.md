@@ -15,9 +15,14 @@ Begleiter mit und blitzt auf Kommando — ein Spielzeug, kein Fortschrittsbalken
 
 ## Design-Entscheidungen (mit jh geklärt)
 
-1. **Zwei Auftrittsarten auf der Wiese:** entweder **Lugen** (ploppt halb hinter Haus, Baum,
-   Zaun, Tonne oder Stein hervor) oder **Flitzen** (rennt einmal quer durch, links→rechts oder
+1. **Zwei Auftrittsarten auf der Wiese:** entweder **Lugen** (ploppt halb hinter Haus, Zaun,
+   Busch oder Stein hervor) oder **Flitzen** (rennt einmal quer durch, links→rechts oder
    rechts→links, zufällige Höhe). Zufällig gewählt.
+   **Nachtrag 2026-10-17 (nach dem ersten Test):** Verstecke liegen nur noch **am Haus und unten
+   bei den Rand-Büschen**. Oben und rechts verdecken die Ecken-Buttons (Ton, Neues Spiel, Spiel)
+   und unten links das Beeren-/Blitz-HUD die Figur — vier der ursprünglich neun Verstecke waren
+   unsichtbar. `BLOCKED_AREAS` in `pika.js` hält diese Flächen fest, ein Test in
+   `tests/pika.test.js` prüft jedes Versteck dagegen.
 2. **Direkt antippen** zählt (großzügiger Radius), egal wo die Figur steht. **5 Treffer** → Fang-Event.
 3. **Fang-Event = Hämmern:** Energie-Leiste füllt sich pro Tap, sinkt langsam, wenn man aufhört.
    Voll → mächtiger Donnerblitz → gefangen.
