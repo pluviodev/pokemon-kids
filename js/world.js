@@ -41,10 +41,18 @@ export function makeWorld({ ctx, audio, storage, onEncounter, onEnterHouse, onBe
   let burstT = -BURST_COOLDOWN;
 
   // Eine Quelle fuer Zeichnen UND Treffer, damit Sicht und Tap nie auseinanderlaufen.
-  function pikaPos() {
+  const PIKA_H = 0.13 * S;              // Zeichenhoehe des Auftritts
+  function pikaPos() {                  // Fusspunkt (dort steht er)
     if (!pika) return null;
     if (pika.kind === "peek") return { x: pika.spot.x * S, y: pika.spot.y * S };
     return { x: dashX(pika.t, DASH_TIME, pika.fromLeft, S, 0.12 * S), y: pika.y * S };
+  }
+  // Mitte der SICHTBAREN Figur: beim Lugen ist er unten angeschnitten, der Kopf
+  // sitzt also deutlich hoeher als der Fusspunkt - sonst tippt das Kind daneben.
+  function pikaHitCenter() {
+    const p = pikaPos();
+    if (!p) return null;
+    return { x: p.x, y: p.y - PIKA_H * (pika.kind === "peek" ? 0.68 : 0.5) };
   }
 
   function loadCompanion() {
@@ -207,7 +215,7 @@ export function makeWorld({ ctx, audio, storage, onEncounter, onEnterHouse, onBe
     const pp = pikaPos();
     if (pp) {
       const spr = getSprite(PIKA_ID);
-      const h = 0.13 * S, ar = spr.width && spr.height ? spr.width / spr.height : 1;
+      const h = PIKA_H, ar = spr.width && spr.height ? spr.width / spr.height : 1;
       const wob = Math.sin(t * 9) * 0.008 * S;
       ctx.save();
       if (pika.kind === "peek") {
@@ -292,7 +300,7 @@ export function makeWorld({ ctx, audio, storage, onEncounter, onEnterHouse, onBe
     onPointer(x, y) {
       const r = TAP_RADIUS * S;
       // 1) laufender Auftritt getroffen? -> zaehlt, Figur laeuft dabei NICHT los
-      const p = pikaPos();
+      const p = pikaHitCenter();
       if (p && hitsAppearance({ x, y }, p, r)) {
         audio.play("zap");
         for (let i = 0; i < 14; i++) {
