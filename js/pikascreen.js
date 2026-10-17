@@ -4,15 +4,17 @@ import { VIRTUAL_W } from "./config.js";
 import { levelData } from "./levels.js";
 import { getImg, getSprite } from "./sprites.js";
 import { PIKA_ID, PIKA_NAME, CHARGE_GAIN, CHARGE_DECAY, chargeStep } from "./pika.js";
+import { makeStorm } from "./fx.js";
 
 const S = VIRTUAL_W;
 const POKE = { x: 0.5 * S, y: 0.44 * S };
 const BAR = { x: 0.18 * S, y: 0.76 * S, w: 0.64 * S, h: 0.09 * S };
-const FLASH_TIME = 1.4;
+const FLASH_TIME = 2.0;   // laenger, damit das Gewitter ausrollen kann
 
 export function makePikaScreen({ ctx, audio, storage, onDone }) {
   let level = 0, t = 0, taps = 0, phase = "charge", flashT = 0;
   let sparks = [];
+  const storm = makeStorm({ ctx, S });
 
   function start() {
     level = 0; t = 0; taps = 0; phase = "charge"; flashT = 0; sparks = [];
@@ -36,14 +38,22 @@ export function makePikaScreen({ ctx, audio, storage, onDone }) {
     if (phase === "charge") {
       level = chargeStep(level, dt, taps, CHARGE_GAIN, CHARGE_DECAY);
       taps = 0;
-      if (level >= 1) { phase = "flash"; flashT = 0; audio.play("thunder"); }
+      if (level >= 1) {
+        phase = "flash"; flashT = 0;
+        audio.play("thunder");
+        storm.start({ count: 5, arms: 8, duration: FLASH_TIME, origin: POKE, shake: 16 });
+      }
       return;
     }
     flashT += dt;
+    storm.update(dt);
     if (flashT >= FLASH_TIME) { storage.setPikaCaught(true); onDone(); }
   }
 
   function draw() {
+    const sh = storm.shakeOffset();
+    ctx.save();
+    ctx.translate(sh.dx, sh.dy);
     const lv = levelData(storage.getLevel());
     ctx.fillStyle = "#2b2f3a"; ctx.fillRect(0, 0, S, S);
     const bg = getImg(lv.catchbg);
@@ -89,14 +99,8 @@ export function makePikaScreen({ ctx, audio, storage, onDone }) {
     ctx.strokeStyle = "#333"; ctx.lineWidth = 5;
     ctx.beginPath(); ctx.roundRect(BAR.x, BAR.y, BAR.w, BAR.h, BAR.h * 0.4); ctx.stroke();
 
-    // Donnerblitz
-    if (phase === "flash") {
-      const k = flashT / FLASH_TIME;
-      const strobe = Math.sin(flashT * 34) > -0.2 ? 1 : 0.25;
-      ctx.globalAlpha = Math.max(0, (1 - k * 0.7) * strobe);
-      ctx.fillStyle = "#fffbe0"; ctx.fillRect(0, 0, S, S);
-      ctx.globalAlpha = 1;
-    }
+    ctx.restore();          // Ruetteln endet hier - das Gewitter bleibt ruhig im Rahmen
+    storm.draw();
   }
 
   return { start, update, draw, onTap };

@@ -6,6 +6,7 @@ import { getImg, playerFrame, getSprite } from "./sprites.js";
 import { levelData, pokemonForLevel } from "./levels.js";
 import { followStep, trailTarget } from "./follow.js";
 import { BERRIES_PER_TOY } from "./toys.js";
+import { makeStorm } from "./fx.js";
 import { PIKA_ID, PIKA_HITS_NEEDED, APPEAR_GAP, PEEK_TIME, DASH_TIME, TAP_RADIUS,
          PEEK_H, PEEK_VISIBLE, BURST_NEED, BURST_WINDOW, BURST_COOLDOWN,
          pickAppearance, dashX, hitsAppearance, isBurst } from "./pika.js";
@@ -38,7 +39,8 @@ export function makeWorld({ ctx, audio, storage, onEncounter, onEnterHouse, onBe
   let pikaTimer = APPEAR_GAP.min;
   let pikaHitFx = [];
   let tapTimes = [];
-  let burstT = -BURST_COOLDOWN;
+  let burstT = -BURST_COOLDOWN;   // Zeitpunkt der letzten Blitz-Show
+  const storm = makeStorm({ ctx, S });
 
   // Eine Quelle fuer Zeichnen UND Treffer, damit Sicht und Tap nie auseinanderlaufen.
   const PIKA_H = PEEK_H * S;            // Zeichenhoehe des Auftritts (gemeinsam mit pika.js)
@@ -142,6 +144,7 @@ export function makeWorld({ ctx, audio, storage, onEncounter, onEnterHouse, onBe
       }
     } else pika = null;
 
+    storm.update(dt);
     for (const f of pikaHitFx) { f.x += f.vx * dt; f.y += f.vy * dt; f.life -= dt * 1.4; }
     pikaHitFx = pikaHitFx.filter(f => f.life > 0);
 
@@ -166,6 +169,9 @@ export function makeWorld({ ctx, audio, storage, onEncounter, onEnterHouse, onBe
   }
 
   function draw() {
+    const sh = storm.shakeOffset();   // beim Donnerblitz wackelt die ganze Wiese
+    ctx.save();
+    ctx.translate(sh.dx, sh.dy);
     ctx.fillStyle = GRASS; ctx.fillRect(0, 0, S, S);
     const world = getImg(lv.world);
     if (world) ctx.drawImage(world, 0, 0, S, S); // ganzes Bild
@@ -285,14 +291,9 @@ export function makeWorld({ ctx, audio, storage, onEncounter, onEnterHouse, onBe
       }
     }
 
+    ctx.restore();          // Ruetteln endet hier
     // Donnerblitz-Show des Begleiters
-    const bt = t - burstT;
-    if (bt < 1.2) {
-      ctx.save();
-      ctx.globalAlpha = Math.max(0, 1 - bt / 1.2) * (Math.sin(bt * 40) > -0.3 ? 0.85 : 0.2);
-      ctx.fillStyle = "#fffbe0"; ctx.fillRect(0, 0, S, S);
-      ctx.restore();
-    }
+    storm.draw();
   }
 
   return {
@@ -319,6 +320,9 @@ export function makeWorld({ ctx, audio, storage, onEncounter, onEnterHouse, onBe
         tapTimes.push(t);
         if (t - burstT >= BURST_COOLDOWN && isBurst(tapTimes, t, BURST_NEED, BURST_WINDOW)) {
           burstT = t; tapTimes = []; audio.play("thunder");
+          // kuerzer als beim Fangen - der kommt ja beliebig oft
+          storm.start({ count: 2, arms: 6, duration: 1.1, shake: 10,
+                        origin: { x: companion.x, y: companion.y - 0.05 * S } });
         }
         return;
       }
